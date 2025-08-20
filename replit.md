@@ -9,6 +9,8 @@ The system is designed to streamline the complex process of stability testing co
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Calendar integration: Enhanced Outlook calendar integration with downloadable .ics files for individual tasks and bulk export.
+Testing schedule: Removed Week 3 from stability testing protocol (now: Initial, Week 1, Week 2, Week 4, Week 8, Week 13).
 
 ## System Architecture
 
