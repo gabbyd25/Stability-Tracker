@@ -100,6 +100,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete task
+  app.delete("/api/tasks/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteTask(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      res.json({ message: "Task deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
