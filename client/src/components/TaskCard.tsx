@@ -44,14 +44,14 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
     try {
       await sendEmailNotification(task);
       toast({
-        title: "Email notification sent!",
-        description: `Reminder sent to ${task.product.email}`,
+        title: "Calendar event downloaded!",
+        description: `Outlook calendar file downloaded. Email reminder opened for ${task.product.email}`,
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Failed to send email",
-        description: "Please check your email configuration",
+        title: "Failed to create calendar event",
+        description: "Please try again or check your browser settings",
       });
     }
   };
@@ -153,9 +153,10 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                     : 'bg-blue-500 hover:bg-blue-600'
                 } text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center`}
                 data-testid={`button-email-${task.id}`}
+                title="Send email reminder and download Outlook calendar event"
               >
-                <Mail className="w-4 h-4 mr-1" />
-                {isOverdue ? 'Urgent' : 'Email'}
+                <Calendar className="w-4 h-4 mr-1" />
+                {isOverdue ? 'Alert' : 'Remind'}
               </Button>
             </>
           ) : (

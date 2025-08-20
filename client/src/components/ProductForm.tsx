@@ -183,8 +183,10 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
                 disabled={isExporting}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center"
                 data-testid="button-export-outlook"
+                title="Export all tasks to Outlook calendar file"
               >
-                <Calendar className="w-5 h-5" />
+                <Calendar className="w-5 h-5 mr-1" />
+                {isExporting ? "Exporting..." : "Outlook"}
               </Button>
             </div>
           </div>
