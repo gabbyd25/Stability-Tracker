@@ -153,7 +153,7 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                     : 'bg-blue-500 hover:bg-blue-600'
                 } text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center`}
                 data-testid={`button-email-${task.id}`}
-                title="Send email reminder and download Outlook calendar event"
+                title="Download calendar event (.ics file works with Outlook, Google Calendar, etc.) and send email reminder"
               >
                 <Calendar className="w-4 h-4 mr-1" />
                 {isOverdue ? 'Alert' : 'Remind'}

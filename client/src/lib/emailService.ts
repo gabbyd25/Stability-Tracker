@@ -4,14 +4,14 @@ export async function sendEmailNotification(task: TaskWithProduct): Promise<void
   // Create ICS content for the single task
   const icsContent = generateTaskICS(task);
   
-  // Create a downloadable ICS file
+  // Create a downloadable ICS file (works with Outlook, Google Calendar, Apple Calendar)
   const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-  const icsFile = new File([blob], `${task.name.replace(/[^a-zA-Z0-9]/g, '-')}.ics`, { type: 'text/calendar' });
+  const fileName = `${task.name.replace(/[^a-zA-Z0-9\s]/g, '-').replace(/\s+/g, '-')}-outlook-event.ics`;
   
   // Create download link
   const link = document.createElement('a');
   link.href = window.URL.createObjectURL(blob);
-  link.download = icsFile.name;
+  link.download = fileName;
   
   // Trigger download
   document.body.appendChild(link);
@@ -29,10 +29,19 @@ Product: ${task.product.name}
 Due Date: ${new Date(task.dueDate).toLocaleDateString()}
 Type: ${task.type.replace('ft-', 'F/T ').replace('-', ' ').toUpperCase()}
 
-A calendar file has been downloaded to your computer. To add this to your Outlook calendar:
-1. Open the downloaded .ics file
-2. Click "Save & Close" when Outlook opens the event
-3. The reminder will be set for 9:00 AM on the due date
+A calendar file (.ics format) has been downloaded to your computer. This file works with all major calendar apps:
+
+For OUTLOOK:
+1. Double-click the downloaded .ics file
+2. Outlook will open showing the event details
+3. Click "Save & Close" to add it to your calendar
+
+For GOOGLE CALENDAR:
+1. Go to calendar.google.com
+2. Click the "+" next to "Other calendars"
+3. Select "Import" and choose the downloaded file
+
+The reminder is set for 9:00 AM on the due date.
 
 Please complete this task and mark it as done in your tracker.
 
