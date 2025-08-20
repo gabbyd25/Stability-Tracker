@@ -160,9 +160,20 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
               </Button>
             </>
           ) : (
-            <div className="flex items-center text-emerald-600 font-semibold">
-              <CheckCircle className="w-4 h-4 mr-1" />
-              Completed
+            <div className="flex gap-2 items-center">
+              <div className="flex items-center text-emerald-600 font-semibold">
+                <CheckCircle className="w-4 h-4 mr-1" />
+                Completed
+              </div>
+              <Button
+                onClick={() => completeTaskMutation.mutate()}
+                disabled={completeTaskMutation.isPending}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
+                data-testid={`button-undo-${task.id}`}
+                title="Mark task as incomplete"
+              >
+                Undo
+              </Button>
             </div>
           )}
         </div>
