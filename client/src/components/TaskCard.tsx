@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { TaskWithProduct } from "@shared/schema";
-import { CheckCircle, Mail, Calendar, AlertTriangle } from "lucide-react";
+import { CheckCircle, Mail, Calendar, AlertTriangle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -36,6 +36,27 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
         variant: "destructive",
         title: "Error updating task",
         description: error.message || "Failed to update task status",
+      });
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('DELETE', `/api/tasks/${task.id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      onTaskUpdate();
+      toast({
+        title: "Task deleted",
+        description: `${task.name} moved to recycle bin`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error deleting task",
+        description: error.message || "Failed to delete task",
       });
     },
   });
@@ -158,6 +179,16 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                 <Calendar className="w-4 h-4 mr-1" />
                 {isOverdue ? 'Alert' : 'Remind'}
               </Button>
+              
+              <Button
+                onClick={() => deleteTaskMutation.mutate()}
+                disabled={deleteTaskMutation.isPending}
+                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
+                data-testid={`button-delete-${task.id}`}
+                title="Delete task (moves to recycle bin)"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </>
           ) : (
             <div className="flex gap-2 items-center">
@@ -173,6 +204,15 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                 title="Mark task as incomplete"
               >
                 Undo
+              </Button>
+              <Button
+                onClick={() => deleteTaskMutation.mutate()}
+                disabled={deleteTaskMutation.isPending}
+                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
+                data-testid={`button-delete-${task.id}`}
+                title="Delete task (moves to recycle bin)"
+              >
+                <Trash2 className="w-4 h-4" />
               </Button>
             </div>
           )}

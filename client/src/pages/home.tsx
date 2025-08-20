@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import ProductForm from "@/components/ProductForm";
 import StatsGrid from "@/components/StatsGrid";
 import TaskSection from "@/components/TaskSection";
+import RecycleBin from "@/components/RecycleBin";
 import { TaskWithProduct } from "@shared/schema";
 import { FlaskConical } from "lucide-react";
 
@@ -48,6 +49,9 @@ export default function Home() {
           <StatsGrid tasks={tasks} />
           <TaskSection tasks={tasks} onTaskUpdate={refetchTasks} />
         </main>
+
+        {/* Recycle Bin */}
+        <RecycleBin onTaskUpdate={refetchTasks} />
       </div>
     </div>
   );

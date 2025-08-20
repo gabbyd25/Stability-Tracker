@@ -10,11 +10,15 @@ export interface IStorage {
   // Tasks
   getTasks(): Promise<Task[]>;
   getTasksWithProducts(): Promise<TaskWithProduct[]>;
+  getDeletedTasks(): Promise<Task[]>;
+  getDeletedTasksWithProducts(): Promise<TaskWithProduct[]>;
   getTask(id: string): Promise<Task | undefined>;
   createTask(task: InsertTask): Promise<Task>;
   createTasks(tasks: InsertTask[]): Promise<Task[]>;
   updateTask(id: string, updates: Partial<Task>): Promise<Task | undefined>;
   deleteTask(id: string): Promise<boolean>;
+  restoreTask(id: string): Promise<Task | undefined>;
+  permanentlyDeleteTask(id: string): Promise<boolean>;
   getTasksByProductId(productId: string): Promise<Task[]>;
 }
 
@@ -49,11 +53,29 @@ export class MemStorage implements IStorage {
 
   // Tasks
   async getTasks(): Promise<Task[]> {
-    return Array.from(this.tasks.values());
+    return Array.from(this.tasks.values()).filter(task => !task.deleted);
   }
 
   async getTasksWithProducts(): Promise<TaskWithProduct[]> {
-    const tasks = Array.from(this.tasks.values());
+    const tasks = Array.from(this.tasks.values()).filter(task => !task.deleted);
+    const tasksWithProducts: TaskWithProduct[] = [];
+    
+    for (const task of tasks) {
+      const product = this.products.get(task.productId);
+      if (product) {
+        tasksWithProducts.push({ ...task, product });
+      }
+    }
+    
+    return tasksWithProducts;
+  }
+
+  async getDeletedTasks(): Promise<Task[]> {
+    return Array.from(this.tasks.values()).filter(task => task.deleted);
+  }
+
+  async getDeletedTasksWithProducts(): Promise<TaskWithProduct[]> {
+    const tasks = Array.from(this.tasks.values()).filter(task => task.deleted);
     const tasksWithProducts: TaskWithProduct[] = [];
     
     for (const task of tasks) {
@@ -78,7 +100,9 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
       completed: insertTask.completed ?? false,
       completedAt: insertTask.completedAt ?? null,
-      cycle: insertTask.cycle ?? null
+      cycle: insertTask.cycle ?? null,
+      deleted: false,
+      deletedAt: null
     };
     this.tasks.set(id, task);
     return task;
@@ -103,11 +127,37 @@ export class MemStorage implements IStorage {
   }
 
   async deleteTask(id: string): Promise<boolean> {
+    const task = this.tasks.get(id);
+    if (!task) return false;
+    
+    const updatedTask = { 
+      ...task, 
+      deleted: true, 
+      deletedAt: new Date() 
+    };
+    this.tasks.set(id, updatedTask);
+    return true;
+  }
+
+  async restoreTask(id: string): Promise<Task | undefined> {
+    const task = this.tasks.get(id);
+    if (!task || !task.deleted) return undefined;
+    
+    const restoredTask = { 
+      ...task, 
+      deleted: false, 
+      deletedAt: null 
+    };
+    this.tasks.set(id, restoredTask);
+    return restoredTask;
+  }
+
+  async permanentlyDeleteTask(id: string): Promise<boolean> {
     return this.tasks.delete(id);
   }
 
   async getTasksByProductId(productId: string): Promise<Task[]> {
-    return Array.from(this.tasks.values()).filter(task => task.productId === productId);
+    return Array.from(this.tasks.values()).filter(task => task.productId === productId && !task.deleted);
   }
 }
 

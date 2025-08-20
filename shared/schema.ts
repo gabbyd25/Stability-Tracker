@@ -20,6 +20,8 @@ export const tasks = pgTable("tasks", {
   completed: boolean("completed").default(false),
   completedAt: timestamp("completed_at"),
   cycle: text("cycle"), // 'Initial', 'Week 1', 'Cycle 1', etc.
+  deleted: boolean("deleted").default(false),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

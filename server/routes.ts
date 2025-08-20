@@ -100,7 +100,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete task
+  // Get deleted tasks (recycle bin)
+  app.get("/api/tasks/deleted", async (req, res) => {
+    try {
+      const deletedTasks = await storage.getDeletedTasksWithProducts();
+      res.json(deletedTasks);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch deleted tasks" });
+    }
+  });
+
+  // Delete task (soft delete - move to recycle bin)
   app.delete("/api/tasks/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -108,9 +118,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deleted) {
         return res.status(404).json({ message: "Task not found" });
       }
-      res.json({ message: "Task deleted successfully" });
+      res.json({ message: "Task moved to recycle bin" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
+  // Restore task from recycle bin
+  app.post("/api/tasks/:id/restore", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const restoredTask = await storage.restoreTask(id);
+      if (!restoredTask) {
+        return res.status(404).json({ message: "Task not found in recycle bin" });
+      }
+      res.json(restoredTask);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to restore task" });
+    }
+  });
+
+  // Permanently delete task
+  app.delete("/api/tasks/:id/permanent", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.permanentlyDeleteTask(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      res.json({ message: "Task permanently deleted" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to permanently delete task" });
     }
   });
 
