@@ -205,7 +205,6 @@ function generateStabilityTasks(productId: string, productName: string, startDat
     { name: 'Initial', days: 0 },
     { name: 'Week 1', days: 7 },
     { name: 'Week 2', days: 14 },
-    { name: 'Week 3', days: 21 },
     { name: 'Week 4', days: 28 },
     { name: 'Week 8', days: 56 },
     { name: 'Week 13', days: 91 }
