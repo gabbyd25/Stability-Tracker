@@ -1,0 +1,171 @@
+import { useMutation } from "@tanstack/react-query";
+import { TaskWithProduct } from "@shared/schema";
+import { CheckCircle, Mail, Calendar, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { sendEmailNotification } from "@/lib/emailService";
+
+interface TaskCardProps {
+  task: TaskWithProduct;
+  onTaskUpdate: () => void;
+}
+
+export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
+  const { toast } = useToast();
+  const today = new Date().toISOString().split('T')[0];
+  const isOverdue = task.dueDate < today && !task.completed;
+  const isDueToday = task.dueDate === today && !task.completed;
+
+  const completeTaskMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('PATCH', `/api/tasks/${task.id}`, {
+        completed: !task.completed,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      onTaskUpdate();
+      toast({
+        title: task.completed ? "Task marked incomplete" : "Task completed!",
+        description: `${task.name} has been ${task.completed ? 'uncompleted' : 'completed'}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error updating task",
+        description: error.message || "Failed to update task status",
+      });
+    },
+  });
+
+  const handleSendEmail = async () => {
+    try {
+      await sendEmailNotification(task);
+      toast({
+        title: "Email notification sent!",
+        description: `Reminder sent to ${task.product.email}`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to send email",
+        description: "Please check your email configuration",
+      });
+    }
+  };
+
+  const getBorderColor = () => {
+    if (task.type === 'weekly') return 'border-primary-500';
+    if (task.type === 'ft-thaw') return 'border-secondary-500';
+    if (task.type === 'ft-test') return 'border-purple-500';
+    return 'border-gray-300';
+  };
+
+  const getBackgroundGradient = () => {
+    if (isOverdue) return 'from-red-50 to-white';
+    if (task.type === 'weekly') return 'from-primary-50 to-white';
+    if (task.type === 'ft-thaw') return 'from-pink-50 to-white';
+    if (task.type === 'ft-test') return 'from-purple-50 to-white';
+    return 'from-gray-50 to-white';
+  };
+
+  const getTypeLabel = () => {
+    switch (task.type) {
+      case 'weekly':
+        return 'Weekly Stability';
+      case 'ft-thaw':
+        return 'F/T Thaw';
+      case 'ft-test':
+        return 'F/T Test';
+      default:
+        return task.type;
+    }
+  };
+
+  const getTypeBadgeColor = () => {
+    if (task.type === 'weekly') return 'bg-primary-100 text-primary-700';
+    if (task.type === 'ft-thaw') return 'bg-secondary-100 text-secondary-700';
+    if (task.type === 'ft-test') return 'bg-purple-100 text-purple-700';
+    return 'bg-gray-100 text-gray-700';
+  };
+
+  return (
+    <div
+      className={`border-l-4 ${getBorderColor()} bg-gradient-to-r ${getBackgroundGradient()} rounded-r-xl p-6 hover:shadow-lg transition-all duration-300 animate-slide-up ${
+        task.completed ? 'opacity-75' : ''
+      }`}
+      data-testid={`task-card-${task.id}`}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <h3
+            className={`font-semibold text-gray-800 text-lg mb-2 ${
+              task.completed ? 'line-through' : ''
+            }`}
+            data-testid={`task-name-${task.id}`}
+          >
+            {task.name}
+          </h3>
+          
+          <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+            <span className={`flex items-center ${isOverdue ? 'text-red-600' : ''}`}>
+              {isOverdue ? (
+                <AlertTriangle className="w-4 h-4 mr-1" />
+              ) : (
+                <Calendar className="w-4 h-4 mr-1" />
+              )}
+              {isOverdue ? 'Overdue: ' : 'Due: '}
+              <span data-testid={`task-due-date-${task.id}`}>
+                {new Date(task.dueDate).toLocaleDateString()}
+              </span>
+            </span>
+            
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeBadgeColor()}`}>
+              {getTypeLabel()}
+            </span>
+          </div>
+          
+          <div className="text-sm text-gray-500" data-testid={`task-email-${task.id}`}>
+            {task.completed ? 'Completed by' : 'Assigned to'}: {task.product.email}
+          </div>
+        </div>
+
+        <div className="flex gap-2 ml-4">
+          {!task.completed ? (
+            <>
+              <Button
+                onClick={() => completeTaskMutation.mutate()}
+                disabled={completeTaskMutation.isPending}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
+                data-testid={`button-complete-${task.id}`}
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                Complete
+              </Button>
+              
+              <Button
+                onClick={handleSendEmail}
+                className={`${
+                  isOverdue
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-blue-500 hover:bg-blue-600'
+                } text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center`}
+                data-testid={`button-email-${task.id}`}
+              >
+                <Mail className="w-4 h-4 mr-1" />
+                {isOverdue ? 'Urgent' : 'Email'}
+              </Button>
+            </>
+          ) : (
+            <div className="flex items-center text-emerald-600 font-semibold">
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Completed
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
