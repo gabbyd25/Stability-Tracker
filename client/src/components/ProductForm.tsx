@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Calendar } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +25,6 @@ interface ProductFormProps {
 
 export default function ProductForm({ onProductCreated }: ProductFormProps) {
   const { toast } = useToast();
-  const [isExporting, setIsExporting] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -65,38 +63,6 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
       });
     },
   });
-
-  const handleExportToOutlook = async () => {
-    setIsExporting(true);
-    try {
-      const response = await fetch('/api/tasks');
-      const tasks = await response.json();
-      
-      if (tasks.length === 0) {
-        toast({
-          variant: "destructive",
-          title: "No tasks to export",
-          description: "Please create some products and tasks first",
-        });
-        return;
-      }
-
-      // Calendar export removed - use individual task buttons
-      
-      toast({
-        title: "Calendar exported!",
-        description: `Exported ${tasks.length} tasks to Outlook calendar file`,
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Export failed",
-        description: "Failed to export calendar file",
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const onSubmit = (data: FormData) => {
     createProductMutation.mutate(data);
@@ -169,23 +135,11 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
               <Button
                 type="submit"
                 disabled={createProductMutation.isPending}
-                className="flex-1 bg-gradient-to-r from-primary-500 to-secondary-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center"
+                className="w-full bg-gradient-to-r from-primary-500 to-secondary-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center"
                 data-testid="button-create-tasks"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 {createProductMutation.isPending ? "Creating..." : "Create Tasks"}
-              </Button>
-              
-              <Button
-                type="button"
-                onClick={handleExportToOutlook}
-                disabled={isExporting}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center"
-                data-testid="button-export-outlook"
-                title="Export all tasks to Outlook calendar file"
-              >
-                <Calendar className="w-5 h-5 mr-1" />
-                {isExporting ? "Exporting..." : "Outlook"}
               </Button>
             </div>
           </div>
