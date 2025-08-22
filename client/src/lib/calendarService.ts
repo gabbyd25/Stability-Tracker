@@ -1,7 +1,7 @@
 import { TaskWithProduct } from "@shared/schema";
 
-// Generate Outlook/Teams calendar link
-export function generateOutlookLink(task: TaskWithProduct): string {
+// Generate Microsoft Teams calendar link
+export function generateTeamsLink(task: TaskWithProduct): string {
   const startDate = new Date(task.dueDate + 'T09:00:00');
   const endDate = new Date(task.dueDate + 'T10:00:00');
   
@@ -14,10 +14,12 @@ Cycle: ${task.cycle || 'N/A'}
 Assigned to: ${task.product.email}
 Location: Laboratory`);
   
-  const startTime = startDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-  const endTime = endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  // Format dates for Outlook web (works better than Teams direct link)
+  const startTime = startDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const endTime = endDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   
-  return `https://outlook.live.com/calendar/0/deeplink/compose?subject=${subject}&body=${body}&startdt=${startTime}&enddt=${endTime}&location=Laboratory`;
+  // Use Outlook web calendar which integrates with Teams
+  return `https://outlook.live.com/calendar/0/deeplink/compose?subject=${subject}&body=${body}&startdt=${startTime}&enddt=${endTime}&location=Laboratory&to=${encodeURIComponent(task.product.email)}`;
 }
 
 // Generate Google Calendar link

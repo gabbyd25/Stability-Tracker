@@ -9,7 +9,7 @@ The system is designed to streamline the complex process of stability testing co
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Calendar integration: API-based automatic calendar event creation for team calendar (removed email notifications and .ics downloads).
+Calendar integration: Three calendar options - Microsoft Teams/Outlook web calendar, Google Calendar links, and universal .ics file downloads.
 Testing schedule: Removed Week 3 from stability testing protocol (now: Initial, Week 1, Week 2, Week 4, Week 8, Week 13).
 Database: SQLite for local data storage.
 Task management: Separate completed tasks section for better organization.
@@ -50,9 +50,11 @@ Task management: Separate completed tasks section for better organization.
 ### External Service Integrations
 
 #### Calendar Integration
-- **Team Calendar API**: Automatic calendar event creation via API integration
-- **Event Management**: Automated creation of calendar events with proper timing and descriptions
-- **Task Organization**: Separate completed tasks section for better workflow management
+- **Microsoft Teams Calendar**: Direct web links to Outlook calendar with pre-filled event details
+- **Google Calendar**: Direct web links to Google Calendar with pre-filled event details
+- **Universal .ics Downloads**: Standard calendar files compatible with all calendar applications
+- **Event Management**: All calendar options include task details, timing, location, and attendee information
+- **Task Organization**: Completed tasks integrated as filter option within main task management section
 
 #### Task Generation Engine
 - **FDA Protocol Compliance**: Automated generation of stability testing tasks following standard protocols
