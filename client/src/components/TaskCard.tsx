@@ -1,10 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { TaskWithProduct } from "@shared/schema";
-import { CheckCircle, Calendar, AlertTriangle, Trash2 } from "lucide-react";
+import { CheckCircle, Calendar, AlertTriangle, Trash2, ExternalLink, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { addToTeamCalendar } from "@/lib/calendarService";
+import { generateOutlookLink, generateGoogleCalendarLink, downloadIcsFile } from "@/lib/calendarService";
 
 interface TaskCardProps {
   task: TaskWithProduct;
@@ -61,18 +61,36 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
     },
   });
 
-  const handleAddToCalendar = async () => {
+  const handleOutlookCalendar = () => {
+    const link = generateOutlookLink(task);
+    window.open(link, '_blank');
+    toast({
+      title: "Opening Outlook Calendar",
+      description: `Creating calendar event for ${task.name}`,
+    });
+  };
+
+  const handleGoogleCalendar = () => {
+    const link = generateGoogleCalendarLink(task);
+    window.open(link, '_blank');
+    toast({
+      title: "Opening Google Calendar",
+      description: `Creating calendar event for ${task.name}`,
+    });
+  };
+
+  const handleDownloadIcs = () => {
     try {
-      await addToTeamCalendar(task);
+      downloadIcsFile(task);
       toast({
-        title: "Added to team calendar",
-        description: `${task.name} has been added to your team calendar`,
+        title: "Calendar file downloaded",
+        description: `${task.name}.ics file has been downloaded`,
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error adding to calendar",
-        description: "Failed to add task to team calendar",
+        title: "Error downloading file",
+        description: "Failed to download calendar file",
       });
     }
   };
@@ -166,15 +184,47 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                 Complete
               </Button>
               
-              <Button
-                onClick={handleAddToCalendar}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
-                data-testid={`button-calendar-${task.id}`}
-                title="Add task to team calendar"
-              >
-                <Calendar className="w-4 h-4 mr-1" />
-                Add to Calendar
-              </Button>
+              {/* Calendar Options */}
+              <div className="relative group">
+                <Button
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
+                  data-testid={`button-calendar-${task.id}`}
+                  title="Calendar options"
+                >
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Calendar
+                </Button>
+                
+                {/* Dropdown Menu */}
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 min-w-48">
+                  <div className="py-1">
+                    <button
+                      onClick={handleOutlookCalendar}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center"
+                      data-testid={`button-outlook-${task.id}`}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Outlook/Teams Calendar
+                    </button>
+                    <button
+                      onClick={handleGoogleCalendar}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 flex items-center"
+                      data-testid={`button-google-${task.id}`}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Google Calendar
+                    </button>
+                    <button
+                      onClick={handleDownloadIcs}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      data-testid={`button-ics-${task.id}`}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download .ics file
+                    </button>
+                  </div>
+                </div>
+              </div>
               
               <Button
                 onClick={() => deleteTaskMutation.mutate()}
