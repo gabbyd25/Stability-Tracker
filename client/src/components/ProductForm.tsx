@@ -150,7 +150,9 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
 }
 
 function generateStabilityTasks(productId: string, productName: string, startDate: string, assignee: string): InsertTask[] {
-  const start = new Date(startDate);
+  // Parse the date string properly to avoid timezone issues
+  const [year, month, day] = startDate.split('-').map(Number);
+  const start = new Date(year, month - 1, day); // Month is 0-indexed
   const tasks: InsertTask[] = [];
 
   // Weekly tasks
@@ -167,11 +169,17 @@ function generateStabilityTasks(productId: string, productName: string, startDat
     const dueDate = new Date(start);
     dueDate.setDate(start.getDate() + week.days);
     
+    // Format the date properly to avoid timezone issues
+    const year = dueDate.getFullYear();
+    const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+    const day = String(dueDate.getDate()).padStart(2, '0');
+    const dueDateString = `${year}-${month}-${day}`;
+    
     tasks.push({
       productId,
       name: `Stability - ${productName} ${week.name}`,
       type: 'weekly',
-      dueDate: dueDate.toISOString().split('T')[0],
+      dueDate: dueDateString,
       cycle: week.name,
       completed: false,
     });
@@ -189,11 +197,17 @@ function generateStabilityTasks(productId: string, productName: string, startDat
     const thawDate = new Date(start);
     thawDate.setDate(start.getDate() + ft.thawDay);
     
+    // Format the thaw date properly
+    const thawYear = thawDate.getFullYear();
+    const thawMonth = String(thawDate.getMonth() + 1).padStart(2, '0');
+    const thawDay = String(thawDate.getDate()).padStart(2, '0');
+    const thawDateString = `${thawYear}-${thawMonth}-${thawDay}`;
+    
     tasks.push({
       productId,
       name: `F/T Thaw - ${productName} Cycle ${ft.cycle}`,
       type: 'ft-thaw',
-      dueDate: thawDate.toISOString().split('T')[0],
+      dueDate: thawDateString,
       cycle: `Cycle ${ft.cycle}`,
       completed: false,
     });
@@ -202,11 +216,17 @@ function generateStabilityTasks(productId: string, productName: string, startDat
     const testDate = new Date(start);
     testDate.setDate(start.getDate() + ft.testDay);
     
+    // Format the test date properly
+    const testYear = testDate.getFullYear();
+    const testMonth = String(testDate.getMonth() + 1).padStart(2, '0');
+    const testDay = String(testDate.getDate()).padStart(2, '0');
+    const testDateString = `${testYear}-${testMonth}-${testDay}`;
+    
     tasks.push({
       productId,
       name: `F/T Test - ${productName} Cycle ${ft.cycle}`,
       type: 'ft-test',
-      dueDate: testDate.toISOString().split('T')[0],
+      dueDate: testDateString,
       cycle: `Cycle ${ft.cycle}`,
       completed: false,
     });
