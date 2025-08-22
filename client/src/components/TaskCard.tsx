@@ -4,7 +4,7 @@ import { CheckCircle, Calendar, AlertTriangle, Trash2, ExternalLink, Download } 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { generateTeamsLink, generateGoogleCalendarLink, downloadIcsFile } from "@/lib/calendarService";
+import { generateGoogleCalendarLink, downloadIcsFile } from "@/lib/calendarService";
 
 interface TaskCardProps {
   task: TaskWithProduct;
@@ -61,14 +61,7 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
     },
   });
 
-  const handleTeamsCalendar = () => {
-    const link = generateTeamsLink(task);
-    window.open(link, '_blank');
-    toast({
-      title: "Opening Teams Calendar",
-      description: `Creating calendar event for ${task.name}`,
-    });
-  };
+
 
   const handleGoogleCalendar = () => {
     const link = generateGoogleCalendarLink(task);
@@ -166,8 +159,8 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
             </span>
           </div>
           
-          <div className="text-sm text-gray-500" data-testid={`task-email-${task.id}`}>
-            {task.completed ? 'Completed by' : 'Assigned to'}: {task.product.email}
+          <div className="text-sm text-gray-500" data-testid={`task-assignee-${task.id}`}>
+            {task.completed ? 'Completed by' : 'Assigned to'}: {task.product.assignee}
           </div>
         </div>
 
@@ -198,14 +191,7 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                 {/* Dropdown Menu */}
                 <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 min-w-48">
                   <div className="py-1">
-                    <button
-                      onClick={handleTeamsCalendar}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center"
-                      data-testid={`button-teams-${task.id}`}
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Microsoft Teams Calendar
-                    </button>
+
                     <button
                       onClick={handleGoogleCalendar}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 flex items-center"

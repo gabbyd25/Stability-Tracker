@@ -1,26 +1,6 @@
 import { TaskWithProduct } from "@shared/schema";
 
-// Generate Microsoft Teams calendar link
-export function generateTeamsLink(task: TaskWithProduct): string {
-  const startDate = new Date(task.dueDate + 'T09:00:00');
-  const endDate = new Date(task.dueDate + 'T10:00:00');
-  
-  const subject = encodeURIComponent(task.name);
-  const body = encodeURIComponent(`Stability testing task for ${task.product.name}
 
-Product: ${task.product.name}
-Task Type: ${task.type.replace('ft-', 'F/T ').replace('-', ' ').toUpperCase()}
-Cycle: ${task.cycle || 'N/A'}
-Assigned to: ${task.product.email}
-Location: Laboratory`);
-  
-  // Format dates for Outlook web (works better than Teams direct link)
-  const startTime = startDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-  const endTime = endDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-  
-  // Use Outlook web calendar which integrates with Teams
-  return `https://outlook.live.com/calendar/0/deeplink/compose?subject=${subject}&body=${body}&startdt=${startTime}&enddt=${endTime}&location=Laboratory&to=${encodeURIComponent(task.product.email)}`;
-}
 
 // Generate Google Calendar link
 export function generateGoogleCalendarLink(task: TaskWithProduct): string {
@@ -33,7 +13,7 @@ export function generateGoogleCalendarLink(task: TaskWithProduct): string {
 Product: ${task.product.name}
 Task Type: ${task.type.replace('ft-', 'F/T ').replace('-', ' ').toUpperCase()}
 Cycle: ${task.cycle || 'N/A'}
-Assigned to: ${task.product.email}`);
+Assigned to: ${task.product.assignee}`);
   
   const dates = `${startDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`;
   
@@ -59,9 +39,9 @@ DTSTAMP:${formatDate(now)}
 DTSTART:${formatDate(startDate)}
 DTEND:${formatDate(endDate)}
 SUMMARY:${task.name}
-DESCRIPTION:Stability testing task for ${task.product.name}\\n\\nProduct: ${task.product.name}\\nTask Type: ${task.type.replace('ft-', 'F/T ').replace('-', ' ').toUpperCase()}\\nCycle: ${task.cycle || 'N/A'}\\nAssigned to: ${task.product.email}
+DESCRIPTION:Stability testing task for ${task.product.name}\\n\\nProduct: ${task.product.name}\\nTask Type: ${task.type.replace('ft-', 'F/T ').replace('-', ' ').toUpperCase()}\\nCycle: ${task.cycle || 'N/A'}\\nAssigned to: ${task.product.assignee}
 LOCATION:Laboratory
-ATTENDEE:MAILTO:${task.product.email}
+ATTENDEE:MAILTO:${task.product.assignee}
 BEGIN:VALARM
 TRIGGER:-PT60M
 ACTION:DISPLAY

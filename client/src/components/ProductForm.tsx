@@ -14,7 +14,7 @@ import { insertProductSchema, type InsertTask } from "@shared/schema";
 
 const formSchema = insertProductSchema.extend({
   name: z.string().min(1, "Product name is required"),
-  email: z.string().email("Valid email address is required"),
+  assignee: z.string().email("Valid email address is required"),
   startDate: z.string().min(1, "Start date is required"),
 });
 
@@ -32,7 +32,7 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      email: "",
+      assignee: "",
       startDate: new Date().toISOString().split('T')[0],
     },
   });
@@ -44,7 +44,7 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
     },
     onSuccess: async (product) => {
       // Generate tasks for the product
-      const tasks = generateStabilityTasks(product.id, product.name, product.startDate, product.email);
+      const tasks = generateStabilityTasks(product.id, product.name, product.startDate, product.assignee);
       
       // Create tasks in batch
       await apiRequest('POST', '/api/tasks/batch', { tasks });
@@ -148,19 +148,19 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-              Email Address
+            <Label htmlFor="assignee" className="text-sm font-medium text-gray-700">
+              Assignee
             </Label>
             <Input
-              id="email"
+              id="assignee"
               type="email"
               placeholder="researcher@lab.com"
-              {...form.register("email")}
+              {...form.register("assignee")}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
-              data-testid="input-email"
+              data-testid="input-assignee"
             />
-            {form.formState.errors.email && (
-              <p className="text-red-500 text-sm">{form.formState.errors.email.message}</p>
+            {form.formState.errors.assignee && (
+              <p className="text-red-500 text-sm">{form.formState.errors.assignee.message}</p>
             )}
           </div>
 
@@ -196,7 +196,7 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
   );
 }
 
-function generateStabilityTasks(productId: string, productName: string, startDate: string, email: string): InsertTask[] {
+function generateStabilityTasks(productId: string, productName: string, startDate: string, assignee: string): InsertTask[] {
   const start = new Date(startDate);
   const tasks: InsertTask[] = [];
 
