@@ -8,7 +8,7 @@ interface TaskSectionProps {
   onTaskUpdate: () => void;
 }
 
-type FilterType = 'all' | 'weekly' | 'freeze-thaw' | 'due-today' | 'overdue';
+type FilterType = 'all' | 'weekly' | 'freeze-thaw' | 'due-today' | 'overdue' | 'completed';
 
 export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -25,8 +25,10 @@ export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
         return tasks.filter(task => task.dueDate === today && !task.completed);
       case 'overdue':
         return tasks.filter(task => task.dueDate < today && !task.completed);
+      case 'completed':
+        return tasks.filter(task => task.completed);
       default:
-        return tasks;
+        return tasks.filter(task => !task.completed);
     }
   }, [tasks, activeFilter]);
 
@@ -44,12 +46,16 @@ export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
     });
   }, [filteredTasks]);
 
+  const activeTasksCount = tasks.filter(task => !task.completed).length;
+  const completedTasksCount = tasks.filter(task => task.completed).length;
+  
   const filters = [
-    { id: 'all', label: 'All Tasks', isActive: activeFilter === 'all' },
+    { id: 'all', label: `Active (${activeTasksCount})`, isActive: activeFilter === 'all' },
     { id: 'weekly', label: 'Weekly Tests', isActive: activeFilter === 'weekly' },
     { id: 'freeze-thaw', label: 'Freeze/Thaw', isActive: activeFilter === 'freeze-thaw' },
     { id: 'due-today', label: 'Due Today', isActive: activeFilter === 'due-today' },
     { id: 'overdue', label: 'Overdue', isActive: activeFilter === 'overdue' },
+    { id: 'completed', label: `Completed (${completedTasksCount})`, isActive: activeFilter === 'completed' },
   ];
 
   return (
@@ -62,7 +68,7 @@ export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
             Task Management
           </h2>
           <div className="text-sm text-gray-500" data-testid="task-summary">
-            <span>{tasks.length} tasks</span> • Last updated <span>just now</span>
+            <span>{activeTasksCount} active</span> • <span>{completedTasksCount} completed</span> • Last updated <span>just now</span>
           </div>
         </div>
 

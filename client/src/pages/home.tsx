@@ -49,7 +49,6 @@ export default function Home() {
           <ProductForm onProductCreated={refetchTasks} />
           <StatsGrid tasks={tasks} />
           <TaskSection tasks={tasks} onTaskUpdate={refetchTasks} />
-          <CompletedTasks tasks={tasks} onTaskUpdate={refetchTasks} />
         </main>
 
         {/* Recycle Bin */}
