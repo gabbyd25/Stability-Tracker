@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { TaskWithProduct } from "@shared/schema";
-import { CheckCircle, Calendar, AlertTriangle, Trash2, ExternalLink, Download } from "lucide-react";
+import { CheckCircle, Calendar, AlertTriangle, Trash2, ExternalLink, Download, Square, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -9,9 +9,11 @@ import { generateOutlookLink, generateGoogleCalendarLink, downloadIcsFile } from
 interface TaskCardProps {
   task: TaskWithProduct;
   onTaskUpdate: () => void;
+  isSelected?: boolean;
+  onSelect?: (selected: boolean) => void;
 }
 
-export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
+export default function TaskCard({ task, onTaskUpdate, isSelected = false, onSelect }: TaskCardProps) {
   const { toast } = useToast();
   const today = new Date().toISOString().split('T')[0];
   const isOverdue = task.dueDate < today && !task.completed;
@@ -134,11 +136,27 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
     <div
       className={`border-l-4 ${getBorderColor()} bg-gradient-to-r ${getBackgroundGradient()} rounded-r-xl p-6 hover:shadow-lg transition-all duration-300 animate-slide-up ${
         task.completed ? 'opacity-75' : ''
-      }`}
+      } ${isSelected ? 'ring-2 ring-primary-500 ring-offset-2' : ''}`}
       data-testid={`task-card-${task.id}`}
     >
       <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
+        <div className="flex items-center gap-3 flex-1">
+          {/* Selection Checkbox */}
+          {onSelect && (
+            <button
+              onClick={() => onSelect(!isSelected)}
+              className="flex-shrink-0 text-gray-400 hover:text-primary-500 transition-colors"
+              data-testid={`checkbox-${task.id}`}
+            >
+              {isSelected ? (
+                <CheckSquare className="w-5 h-5 text-primary-500" />
+              ) : (
+                <Square className="w-5 h-5" />
+              )}
+            </button>
+          )}
+          
+          <div className="flex-1">
           <h3
             className={`font-semibold text-gray-800 text-lg mb-2 ${
               task.completed ? 'line-through' : ''
@@ -168,6 +186,7 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
           
           <div className="text-sm text-gray-500" data-testid={`task-assignee-${task.id}`}>
             {task.completed ? 'Completed by' : 'Assigned to'}: {task.product.assignee}
+          </div>
           </div>
         </div>
 

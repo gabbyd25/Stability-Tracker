@@ -1,7 +1,10 @@
 import { useState, useMemo } from "react";
 import { TaskWithProduct } from "@shared/schema";
 import TaskCard from "./TaskCard";
-import { List } from "lucide-react";
+import { List, Download, CheckSquare, Square } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { downloadIcsFile } from "@/lib/calendarService";
 
 interface TaskSectionProps {
   tasks: TaskWithProduct[];
@@ -12,6 +15,9 @@ type FilterType = 'all' | 'weekly' | 'freeze-thaw' | 'due-today' | 'overdue' | '
 
 export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [bulkDownloading, setBulkDownloading] = useState(false);
+  const { toast } = useToast();
 
   const filteredTasks = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -48,6 +54,67 @@ export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
 
   const activeTasksCount = tasks.filter(task => !task.completed).length;
   const completedTasksCount = tasks.filter(task => task.completed).length;
+
+  const handleTaskSelect = (taskId: string, selected: boolean) => {
+    setSelectedTasks(prev => {
+      const newSet = new Set(prev);
+      if (selected) {
+        newSet.add(taskId);
+      } else {
+        newSet.delete(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTasks.size === sortedTasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(sortedTasks.map(task => task.id)));
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    const selectedTaskList = sortedTasks.filter(task => selectedTasks.has(task.id));
+    
+    if (selectedTaskList.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No tasks selected",
+        description: "Please select tasks to download",
+      });
+      return;
+    }
+
+    setBulkDownloading(true);
+    
+    try {
+      // Download each selected task's .ics file with a small delay to avoid browser blocking
+      for (let i = 0; i < selectedTaskList.length; i++) {
+        const task = selectedTaskList[i];
+        setTimeout(() => {
+          downloadIcsFile(task);
+        }, i * 100); // 100ms delay between downloads
+      }
+      
+      toast({
+        title: "Calendar files downloading",
+        description: `Downloading ${selectedTaskList.length} calendar files`,
+      });
+      
+      // Clear selections after download
+      setSelectedTasks(new Set());
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Download failed",
+        description: "Failed to download calendar files",
+      });
+    } finally {
+      setBulkDownloading(false);
+    }
+  };
   
   const filters = [
     { id: 'all', label: `Active (${activeTasksCount})`, isActive: activeFilter === 'all' },
@@ -72,22 +139,62 @@ export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          {filters.map((filter) => (
-            <button
-              key={filter.id}
-              onClick={() => setActiveFilter(filter.id as FilterType)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                filter.isActive
-                  ? 'bg-primary-500 text-white shadow-md'
-                  : 'bg-gray-200 text-gray-700 hover:bg-primary-100 hover:text-primary-700'
-              }`}
-              data-testid={`filter-${filter.id}`}
-            >
-              {filter.label}
-            </button>
-          ))}
+        {/* Filters and Bulk Actions */}
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {filters.map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setActiveFilter(filter.id as FilterType)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                  filter.isActive
+                    ? 'bg-primary-500 text-white shadow-md'
+                    : 'bg-gray-200 text-gray-700 hover:bg-primary-100 hover:text-primary-700'
+                }`}
+                data-testid={`filter-${filter.id}`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+          
+          {/* Bulk Actions */}
+          {sortedTasks.length > 0 && (
+            <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleSelectAll}
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                  data-testid="button-select-all"
+                >
+                  {selectedTasks.size === sortedTasks.length ? (
+                    <CheckSquare className="w-4 h-4" />
+                  ) : (
+                    <Square className="w-4 h-4" />
+                  )}
+                  {selectedTasks.size === sortedTasks.length ? 'Deselect All' : 'Select All'}
+                </button>
+                {selectedTasks.size > 0 && (
+                  <span className="text-sm text-gray-500">
+                    {selectedTasks.size} task{selectedTasks.size === 1 ? '' : 's'} selected
+                  </span>
+                )}
+              </div>
+              
+              {selectedTasks.size > 0 && (
+                <Button
+                  onClick={handleBulkDownload}
+                  disabled={bulkDownloading}
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  data-testid="button-bulk-download"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  {bulkDownloading ? 'Downloading...' : `Download ${selectedTasks.size} .ics file${selectedTasks.size === 1 ? '' : 's'}`}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -108,6 +215,8 @@ export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
                 key={task.id}
                 task={task}
                 onTaskUpdate={onTaskUpdate}
+                isSelected={selectedTasks.has(task.id)}
+                onSelect={(selected) => handleTaskSelect(task.id, selected)}
               />
             ))}
           </div>
