@@ -154,7 +154,6 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
             <Input
               id="assignee"
               type="text"
-              placeholder="Dr. Sarah Johnson"
               {...form.register("assignee")}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
               data-testid="input-assignee"
