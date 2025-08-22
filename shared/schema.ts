@@ -1,28 +1,28 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const products = pgTable("products", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const products = sqliteTable("products", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`),
   name: text("name").notNull(),
   startDate: text("start_date").notNull(),
   email: text("email").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const tasks = pgTable("tasks", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  productId: varchar("product_id").notNull().references(() => products.id),
+export const tasks = sqliteTable("tasks", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`),
+  productId: text("product_id").notNull().references(() => products.id),
   name: text("name").notNull(),
   type: text("type").notNull(), // 'weekly', 'ft-thaw', 'ft-test'
   dueDate: text("due_date").notNull(),
-  completed: boolean("completed").default(false),
-  completedAt: timestamp("completed_at"),
+  completed: integer("completed", { mode: "boolean" }).default(false),
+  completedAt: text("completed_at"),
   cycle: text("cycle"), // 'Initial', 'Week 1', 'Cycle 1', etc.
-  deleted: boolean("deleted").default(false),
-  deletedAt: timestamp("deleted_at"),
-  createdAt: timestamp("created_at").defaultNow(),
+  deleted: integer("deleted", { mode: "boolean" }).default(false),
+  deletedAt: text("deleted_at"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const insertProductSchema = createInsertSchema(products).omit({

@@ -1,10 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { TaskWithProduct } from "@shared/schema";
-import { CheckCircle, Mail, Calendar, AlertTriangle, Trash2 } from "lucide-react";
+import { CheckCircle, Calendar, AlertTriangle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { sendEmailNotification } from "@/lib/emailService";
+import { addToTeamCalendar } from "@/lib/calendarService";
 
 interface TaskCardProps {
   task: TaskWithProduct;
@@ -61,18 +61,18 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
     },
   });
 
-  const handleSendEmail = async () => {
+  const handleAddToCalendar = async () => {
     try {
-      await sendEmailNotification(task);
+      await addToTeamCalendar(task);
       toast({
-        title: "Calendar event downloaded!",
-        description: `Outlook calendar file downloaded. Email reminder opened for ${task.product.email}`,
+        title: "Added to team calendar",
+        description: `${task.name} has been added to your team calendar`,
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Failed to create calendar event",
-        description: "Please try again or check your browser settings",
+        title: "Error adding to calendar",
+        description: "Failed to add task to team calendar",
       });
     }
   };
@@ -167,17 +167,13 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
               </Button>
               
               <Button
-                onClick={handleSendEmail}
-                className={`${
-                  isOverdue
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-blue-500 hover:bg-blue-600'
-                } text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center`}
-                data-testid={`button-email-${task.id}`}
-                title="Download calendar event (.ics file works with Outlook, Google Calendar, etc.) and send email reminder"
+                onClick={handleAddToCalendar}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
+                data-testid={`button-calendar-${task.id}`}
+                title="Add task to team calendar"
               >
                 <Calendar className="w-4 h-4 mr-1" />
-                {isOverdue ? 'Alert' : 'Remind'}
+                Add to Calendar
               </Button>
               
               <Button

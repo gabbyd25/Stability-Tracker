@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { insertProductSchema, type InsertTask } from "@shared/schema";
-import { exportToOutlookCalendar } from "@/lib/calendarService";
+// Calendar integration removed from bulk operations
 
 const formSchema = insertProductSchema.extend({
   name: z.string().min(1, "Product name is required"),
@@ -81,7 +81,7 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
         return;
       }
 
-      await exportToOutlookCalendar(tasks);
+      // Calendar export removed - use individual task buttons
       
       toast({
         title: "Calendar exported!",

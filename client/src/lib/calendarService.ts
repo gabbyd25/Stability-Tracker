@@ -1,71 +1,37 @@
 import { TaskWithProduct } from "@shared/schema";
 
-export async function exportToOutlookCalendar(tasks: TaskWithProduct[]): Promise<void> {
-  // Create ICS (iCalendar) format for Outlook
-  let icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Stability Tracker//EN
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-X-WR-CALNAME:Stability Testing
-X-WR-TIMEZONE:America/New_York
-X-WR-CALDESC:Stability testing reminders for all products
-`;
-
-  tasks.forEach(task => {
-    const dueDate = new Date(task.dueDate);
-    
-    // Set reminder time to 9:00 AM on due date
-    const startDateTime = new Date(dueDate);
-    startDateTime.setHours(9, 0, 0, 0);
-    
-    const endDateTime = new Date(startDateTime);
-    endDateTime.setHours(10, 0, 0, 0); // 1 hour duration
-
-    // Format dates for ICS (YYYYMMDDTHHMMSS)
-    const formatICSDate = (date: Date) => {
-      return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-    };
-
-    const startICS = formatICSDate(startDateTime);
-    const endICS = formatICSDate(endDateTime);
-    
-    // Create unique ID
-    const uid = `stability-${task.id}@stability-tracker`;
-    
-    // Task description with details
-    const description = `Stability Testing Task\\n\\nProduct: ${task.product.name}\\nTask: ${task.name}\\nType: ${task.type.replace('ft-', 'F/T ').replace('-', ' ').toUpperCase()}\\nCycle: ${task.cycle}\\n\\nPlease complete this stability check and update your records.`;
-
-    // Add event to ICS
-    icsContent += `
-BEGIN:VEVENT
-UID:${uid}
-DTSTART:${startICS}
-DTEND:${endICS}
-SUMMARY:${task.name}
-DESCRIPTION:${description}
-LOCATION:Laboratory
-STATUS:CONFIRMED
-SEQUENCE:0
-BEGIN:VALARM
-TRIGGER:-PT15M
-DESCRIPTION:Stability testing reminder
-ACTION:DISPLAY
-END:VALARM
-END:VEVENT`;
-  });
-
-  icsContent += `
-END:VCALENDAR`;
-
-  // Create and download the file
-  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-  const link = document.createElement('a');
-  link.href = window.URL.createObjectURL(blob);
-  link.download = 'stability-testing-calendar.ics';
+export async function addToTeamCalendar(task: TaskWithProduct): Promise<void> {
+  // This is a placeholder for team calendar API integration
+  // In a real implementation, this would call your team's calendar API
+  // Examples: Microsoft Graph API, Google Calendar API, Outlook API, etc.
   
-  // Trigger download
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const calendarEvent = {
+    title: task.name,
+    description: `Stability testing task for ${task.product.name}
+    
+Product: ${task.product.name}
+Task Type: ${task.type.replace('ft-', 'F/T ').replace('-', ' ').toUpperCase()}
+Cycle: ${task.cycle || 'N/A'}
+Assigned to: ${task.product.email}`,
+    startDate: new Date(task.dueDate + 'T09:00:00'),
+    endDate: new Date(task.dueDate + 'T10:00:00'),
+    attendees: [task.product.email],
+    location: 'Laboratory',
+    reminder: 60 // minutes before
+  };
+
+  // Simulate API call - replace with actual calendar service
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  console.log('Would add to team calendar:', calendarEvent);
+  
+  // Example API calls you might use:
+  // Microsoft Graph: POST /me/events
+  // Google Calendar: POST /calendar/v3/calendars/primary/events
+  // Outlook: POST /outlook/events
+}
+
+// Legacy function for ProductForm compatibility
+export async function exportToOutlookCalendar(tasks: any[]): Promise<void> {
+  console.log('Bulk calendar export removed. Use individual Add to Calendar buttons instead.');
 }

@@ -9,8 +9,10 @@ The system is designed to streamline the complex process of stability testing co
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Calendar integration: Enhanced Outlook calendar integration with downloadable .ics files for individual tasks and bulk export.
+Calendar integration: API-based automatic calendar event creation for team calendar (removed email notifications and .ics downloads).
 Testing schedule: Removed Week 3 from stability testing protocol (now: Initial, Week 1, Week 2, Week 4, Week 8, Week 13).
+Database: SQLite for local data storage.
+Task management: Separate completed tasks section for better organization.
 
 ## System Architecture
 
@@ -32,9 +34,9 @@ Testing schedule: Removed Week 3 from stability testing protocol (now: Initial, 
 - **Development Tools**: Hot module replacement via Vite integration for seamless development
 
 ### Data Storage Solutions
-- **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
+- **Database**: SQLite with Drizzle ORM for type-safe database operations
 - **Schema Management**: Drizzle Kit for database migrations and schema management
-- **Connection**: Neon Database serverless PostgreSQL for cloud hosting
+- **Connection**: Local SQLite database for persistent storage
 - **In-Memory Storage**: Fallback MemStorage implementation for development/testing scenarios
 - **Data Models**: 
   - Products table with name, start date, email, and timestamps
@@ -47,15 +49,10 @@ Testing schedule: Removed Week 3 from stability testing protocol (now: Initial, 
 
 ### External Service Integrations
 
-#### Email Services
-- **Email Notifications**: Browser-based mailto integration for sending task reminders
-- **Template System**: Pre-formatted email templates with task details and product information
-- **Recipient Management**: Email addresses stored per product for automated notifications
-
 #### Calendar Integration
-- **Outlook Calendar**: ICS (iCalendar) format export for importing stability testing schedules
-- **Event Generation**: Automated creation of calendar events with proper timing and descriptions
-- **Reminder System**: Built-in alarm notifications set for 9:00 AM on task due dates
+- **Team Calendar API**: Automatic calendar event creation via API integration
+- **Event Management**: Automated creation of calendar events with proper timing and descriptions
+- **Task Organization**: Separate completed tasks section for better workflow management
 
 #### Task Generation Engine
 - **FDA Protocol Compliance**: Automated generation of stability testing tasks following standard protocols

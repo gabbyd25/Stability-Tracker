@@ -45,7 +45,7 @@ export class MemStorage implements IStorage {
     const product: Product = { 
       ...insertProduct, 
       id,
-      createdAt: new Date()
+      createdAt: new Date().toISOString()
     };
     this.products.set(id, product);
     return product;
@@ -97,7 +97,7 @@ export class MemStorage implements IStorage {
     const task: Task = { 
       ...insertTask, 
       id,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
       completed: insertTask.completed ?? false,
       completedAt: insertTask.completedAt ?? null,
       cycle: insertTask.cycle ?? null,
@@ -121,7 +121,7 @@ export class MemStorage implements IStorage {
     const task = this.tasks.get(id);
     if (!task) return undefined;
     
-    const updatedTask = { ...task, ...updates };
+    const updatedTask = { ...task, ...updates, completedAt: updates.completed ? new Date().toISOString() : null };
     this.tasks.set(id, updatedTask);
     return updatedTask;
   }
@@ -133,7 +133,7 @@ export class MemStorage implements IStorage {
     const updatedTask = { 
       ...task, 
       deleted: true, 
-      deletedAt: new Date() 
+      deletedAt: new Date().toISOString() 
     };
     this.tasks.set(id, updatedTask);
     return true;
@@ -161,4 +161,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { SqliteStorage } from "./db";
+export const storage = new SqliteStorage();
