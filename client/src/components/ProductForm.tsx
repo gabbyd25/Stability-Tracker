@@ -14,7 +14,7 @@ import { insertProductSchema, type InsertTask } from "@shared/schema";
 
 const formSchema = insertProductSchema.extend({
   name: z.string().min(1, "Product name is required"),
-  assignee: z.string().email("Valid email address is required"),
+  assignee: z.string().min(1, "Assignee name is required"),
   startDate: z.string().min(1, "Start date is required"),
 });
 
@@ -153,8 +153,8 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
             </Label>
             <Input
               id="assignee"
-              type="email"
-              placeholder="researcher@lab.com"
+              type="text"
+              placeholder="Dr. Sarah Johnson"
               {...form.register("assignee")}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
               data-testid="input-assignee"

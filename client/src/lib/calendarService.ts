@@ -41,7 +41,7 @@ DTEND:${formatDate(endDate)}
 SUMMARY:${task.name}
 DESCRIPTION:Stability testing task for ${task.product.name}\\n\\nProduct: ${task.product.name}\\nTask Type: ${task.type.replace('ft-', 'F/T ').replace('-', ' ').toUpperCase()}\\nCycle: ${task.cycle || 'N/A'}\\nAssigned to: ${task.product.assignee}
 LOCATION:Laboratory
-ATTENDEE:MAILTO:${task.product.assignee}
+ATTENDEE:CN=${task.product.assignee}
 BEGIN:VALARM
 TRIGGER:-PT60M
 ACTION:DISPLAY
