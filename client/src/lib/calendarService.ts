@@ -1,6 +1,24 @@
 import { TaskWithProduct } from "@shared/schema";
 
+// Generate Outlook calendar link
+export function generateOutlookLink(task: TaskWithProduct): string {
+  const startDate = new Date(task.dueDate + 'T09:00:00');
+  const endDate = new Date(task.dueDate + 'T10:00:00');
+  
+  const subject = encodeURIComponent(task.name);
+  const body = encodeURIComponent(`Stability testing task for ${task.product.name}
 
+Product: ${task.product.name}
+Task Type: ${task.type.replace('ft-', 'F/T ').replace('-', ' ').toUpperCase()}
+Cycle: ${task.cycle || 'N/A'}
+Assigned to: ${task.product.assignee}
+Location: Laboratory`);
+  
+  const startTime = startDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const endTime = endDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  
+  return `https://outlook.live.com/calendar/0/deeplink/compose?subject=${subject}&body=${body}&startdt=${startTime}&enddt=${endTime}&location=Laboratory`;
+}
 
 // Generate Google Calendar link
 export function generateGoogleCalendarLink(task: TaskWithProduct): string {
