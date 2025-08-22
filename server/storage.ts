@@ -121,7 +121,7 @@ export class MemStorage implements IStorage {
     const task = this.tasks.get(id);
     if (!task) return undefined;
     
-    const updatedTask = { ...task, ...updates, completedAt: updates.completed ? new Date().toISOString() : null };
+    const updatedTask = { ...task, ...updates };
     this.tasks.set(id, updatedTask);
     return updatedTask;
   }
@@ -161,5 +161,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-import { SqliteStorage } from "./db";
-export const storage = new SqliteStorage();
+// Use in-memory storage for development, but SQLite is available
+export const storage = new MemStorage();

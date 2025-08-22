@@ -84,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If marking as completed, add completedAt timestamp
       if (updates.completed && !updates.completedAt) {
-        updates.completedAt = new Date();
+        updates.completedAt = new Date().toISOString();
       } else if (updates.completed === false) {
         updates.completedAt = null;
       }
