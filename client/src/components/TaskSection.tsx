@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
 import { TaskWithProduct } from "@shared/schema";
 import TaskCard from "./TaskCard";
-import { List, Download, CheckSquare, Square } from "lucide-react";
+import { List, Download, CheckSquare, Square, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { downloadIcsFile } from "@/lib/calendarService";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface TaskSectionProps {
   tasks: TaskWithProduct[];
@@ -18,6 +20,7 @@ export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [bulkDownloading, setBulkDownloading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const filteredTasks = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -115,6 +118,39 @@ export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
       setBulkDownloading(false);
     }
   };
+
+  const deleteAllTasksMutation = useMutation({
+    mutationFn: async () => {
+      const activeTasks = tasks.filter(task => !task.completed);
+      
+      if (activeTasks.length === 0) {
+        throw new Error("No active tasks to delete");
+      }
+
+      // Delete all active tasks
+      for (const task of activeTasks) {
+        await apiRequest('DELETE', `/api/tasks/${task.id}`);
+      }
+      
+      return activeTasks.length;
+    },
+    onSuccess: (deletedCount) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      onTaskUpdate();
+      toast({
+        title: "All tasks deleted",
+        description: `Successfully deleted ${deletedCount} active tasks`,
+      });
+      setSelectedTasks(new Set()); // Clear selections
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error deleting tasks",
+        description: error.message || "Failed to delete all tasks",
+      });
+    },
+  });
   
   const filters = [
     { id: 'all', label: `Active (${activeTasksCount})`, isActive: activeFilter === 'all' },
@@ -181,18 +217,34 @@ export default function TaskSection({ tasks, onTaskUpdate }: TaskSectionProps) {
                 )}
               </div>
               
-              {selectedTasks.size > 0 && (
-                <Button
-                  onClick={handleBulkDownload}
-                  disabled={bulkDownloading}
-                  size="sm"
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  data-testid="button-bulk-download"
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  {bulkDownloading ? 'Downloading...' : `Download ${selectedTasks.size} .ics file${selectedTasks.size === 1 ? '' : 's'}`}
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {selectedTasks.size > 0 && (
+                  <Button
+                    onClick={handleBulkDownload}
+                    disabled={bulkDownloading}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    data-testid="button-bulk-download"
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    {bulkDownloading ? 'Downloading...' : `Download ${selectedTasks.size} .ics file${selectedTasks.size === 1 ? '' : 's'}`}
+                  </Button>
+                )}
+                
+                {activeTasksCount > 0 && (
+                  <Button
+                    onClick={() => deleteAllTasksMutation.mutate()}
+                    disabled={deleteAllTasksMutation.isPending}
+                    size="sm"
+                    variant="destructive"
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    data-testid="button-delete-all"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    {deleteAllTasksMutation.isPending ? 'Deleting...' : `Delete All Active (${activeTasksCount})`}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>
