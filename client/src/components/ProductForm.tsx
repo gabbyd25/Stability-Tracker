@@ -150,9 +150,8 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
 }
 
 function generateStabilityTasks(productId: string, productName: string, startDate: string, assignee: string): InsertTask[] {
-  // Parse the date string properly to avoid timezone issues
-  const [year, month, day] = startDate.split('-').map(Number);
-  const start = new Date(year, month - 1, day); // Month is 0-indexed
+  // The startDate comes in as YYYY-MM-DD format from the date input
+  // We need to make sure it stays exactly as entered without timezone shifts
   const tasks: InsertTask[] = [];
 
   // Weekly tasks
@@ -166,14 +165,22 @@ function generateStabilityTasks(productId: string, productName: string, startDat
   ];
 
   weeklySchedule.forEach(week => {
-    const dueDate = new Date(start);
-    dueDate.setDate(start.getDate() + week.days);
+    let dueDateString: string;
     
-    // Format the date properly to avoid timezone issues
-    const year = dueDate.getFullYear();
-    const month = String(dueDate.getMonth() + 1).padStart(2, '0');
-    const day = String(dueDate.getDate()).padStart(2, '0');
-    const dueDateString = `${year}-${month}-${day}`;
+    if (week.days === 0) {
+      // For Initial task (0 days), use the exact start date
+      dueDateString = startDate;
+    } else {
+      // For other tasks, calculate the date properly
+      const [year, month, day] = startDate.split('-').map(Number);
+      const baseDate = new Date(year, month - 1, day);
+      baseDate.setDate(baseDate.getDate() + week.days);
+      
+      const resultYear = baseDate.getFullYear();
+      const resultMonth = String(baseDate.getMonth() + 1).padStart(2, '0');
+      const resultDay = String(baseDate.getDate()).padStart(2, '0');
+      dueDateString = `${resultYear}-${resultMonth}-${resultDay}`;
+    }
     
     tasks.push({
       productId,
@@ -194,10 +201,10 @@ function generateStabilityTasks(productId: string, productName: string, startDat
 
   ftCycles.forEach(ft => {
     // Thaw task
-    const thawDate = new Date(start);
-    thawDate.setDate(start.getDate() + ft.thawDay);
+    const [year, month, day] = startDate.split('-').map(Number);
+    const thawDate = new Date(year, month - 1, day);
+    thawDate.setDate(thawDate.getDate() + ft.thawDay);
     
-    // Format the thaw date properly
     const thawYear = thawDate.getFullYear();
     const thawMonth = String(thawDate.getMonth() + 1).padStart(2, '0');
     const thawDay = String(thawDate.getDate()).padStart(2, '0');
@@ -213,10 +220,9 @@ function generateStabilityTasks(productId: string, productName: string, startDat
     });
 
     // Test task
-    const testDate = new Date(start);
-    testDate.setDate(start.getDate() + ft.testDay);
+    const testDate = new Date(year, month - 1, day);
+    testDate.setDate(testDate.getDate() + ft.testDay);
     
-    // Format the test date properly
     const testYear = testDate.getFullYear();
     const testMonth = String(testDate.getMonth() + 1).padStart(2, '0');
     const testDay = String(testDate.getDate()).padStart(2, '0');
