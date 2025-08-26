@@ -175,7 +175,7 @@ export default function TaskCard({ task, onTaskUpdate, isSelected = false, onSel
               )}
               {isOverdue ? 'Overdue: ' : 'Due: '}
               <span data-testid={`task-due-date-${task.id}`}>
-                {new Date(task.dueDate).toLocaleDateString()}
+                {new Date(task.dueDate + 'T12:00:00').toLocaleDateString()}
               </span>
             </span>
             
