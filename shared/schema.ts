@@ -1,40 +1,75 @@
-import { sql } from "drizzle-orm";
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sql } from 'drizzle-orm';
+import {
+  index,
+  jsonb,
+  pgTable,
+  timestamp,
+  varchar,
+  boolean,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const products = sqliteTable("products", {
-  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`),
-  name: text("name").notNull(),
-  startDate: text("start_date").notNull(),
-  assignee: text("assignee").notNull(), // Person's name
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+// Session storage table (required for Replit Auth)
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table (required for Replit Auth)
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const tasks = sqliteTable("tasks", {
-  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`),
-  productId: text("product_id").notNull().references(() => products.id),
-  name: text("name").notNull(),
-  type: text("type").notNull(), // 'weekly', 'ft-thaw', 'ft-test'
-  dueDate: text("due_date").notNull(),
-  completed: integer("completed", { mode: "boolean" }).default(false),
-  completedAt: text("completed_at"),
-  cycle: text("cycle"), // 'Initial', 'Week 1', 'Cycle 1', etc.
-  deleted: integer("deleted", { mode: "boolean" }).default(false),
-  deletedAt: text("deleted_at"),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+export const products = pgTable("products", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: varchar("name").notNull(),
+  startDate: varchar("start_date").notNull(),
+  assignee: varchar("assignee").notNull(), // Person's name
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const tasks = pgTable("tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  name: varchar("name").notNull(),
+  type: varchar("type").notNull(), // 'weekly', 'ft-thaw', 'ft-test'
+  dueDate: varchar("due_date").notNull(),
+  completed: boolean("completed").default(false),
+  completedAt: timestamp("completed_at"),
+  cycle: varchar("cycle"), // 'Initial', 'Week 1', 'Cycle 1', etc.
+  deleted: boolean("deleted").default(false),
+  deletedAt: timestamp("deleted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 
 export const insertTaskSchema = createInsertSchema(tasks).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
