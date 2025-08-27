@@ -13,6 +13,7 @@ Calendar integration: Three calendar options - Microsoft Teams/Outlook web calen
 Testing schedule: Removed Week 3 from stability testing protocol (now: Initial, Week 1, Week 2, Week 4, Week 8, Week 13).
 Database: SQLite for local data storage.
 Task management: Separate completed tasks section for better organization.
+Date handling: Critical requirement - dates must display exactly as entered without timezone shifting.
 
 ## System Architecture
 
@@ -55,12 +56,14 @@ Task management: Separate completed tasks section for better organization.
 - **Universal .ics Downloads**: Standard calendar files compatible with all calendar applications
 - **Event Management**: All calendar options include task details, timing, location, and attendee information
 - **Task Organization**: Completed tasks integrated as filter option within main task management section
+- **Bulk Operations**: Delete all active tasks functionality and bulk .ics calendar file downloads
 
 #### Task Generation Engine
 - **FDA Protocol Compliance**: Automated generation of stability testing tasks following standard protocols
 - **Weekly Testing**: Recurring weekly tasks for ongoing stability monitoring
 - **Freeze/Thaw Cycles**: Specialized task creation for freeze/thaw stability testing
 - **Intelligent Scheduling**: Date-based task scheduling with proper cycle management
+- **Timezone-Safe Date Handling**: Dates are processed with 'T12:00:00' to prevent UTC midnight timezone shifts
 
 ### Development and Build Tools
 - **Build System**: Vite for frontend bundling with esbuild for server-side bundling
