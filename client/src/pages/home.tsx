@@ -39,7 +39,7 @@ export default function Home() {
               </h1>
             </div>
             <p className="text-xl text-white/90 max-w-2xl mx-auto" data-testid="app-description">
-              Automated laboratory stability testing management with intelligent scheduling and email notifications
+              Automated Stability Testing Management System
             </p>
           </div>
         </header>
