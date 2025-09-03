@@ -26,7 +26,7 @@ export default function Landing() {
               Automated Scheduling
             </h3>
             <p className="text-gray-600 dark:text-gray-300">
-              Generate FDA-compliant testing schedules with freeze/thaw cycles and weekly testing protocols.
+              Generate stability testing schedules with freeze/thaw cycles and routine test intervals.
             </p>
           </div>
           
