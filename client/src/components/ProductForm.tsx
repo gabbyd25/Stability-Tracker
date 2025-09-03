@@ -40,7 +40,7 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
       name: "",
       assignee: "",
       startDate: new Date().toISOString().split('T')[0],
-      scheduleTemplateId: "",
+      scheduleTemplateId: "standard",
       ftCycleType: "consecutive",
     },
   });
@@ -165,14 +165,14 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
                 Testing Schedule Template
               </Label>
               <Select
-                value={form.watch("scheduleTemplateId") || ""}
-                onValueChange={(value) => form.setValue("scheduleTemplateId", value)}
+                value={form.watch("scheduleTemplateId") || "standard"}
+                onValueChange={(value) => form.setValue("scheduleTemplateId", value === "standard" ? "" : value)}
               >
                 <SelectTrigger className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200">
                   <SelectValue placeholder="Choose testing schedule..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">
+                  <SelectItem value="standard">
                     Standard (Initial, Week 1, 2, 4, 8, 13)
                   </SelectItem>
                   {templates.map((template) => (
