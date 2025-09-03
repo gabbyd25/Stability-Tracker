@@ -58,7 +58,7 @@ export default function Landing() {
               Ready to get started?
             </h2>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Sign in with your Replit account to access your personal stability testing workspace.
+              Sign in with your account to access your personal stability testing workspace.
             </p>
             <Button 
               onClick={() => window.location.href = '/api/login'}
