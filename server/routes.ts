@@ -179,10 +179,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new task
-  app.post("/api/tasks", async (req, res) => {
+  app.post("/api/tasks", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const validatedData = insertTaskSchema.parse(req.body);
-      const task = await storage.createTask(validatedData);
+      const task = await storage.createTask(validatedData, userId);
       res.status(201).json(task);
     } catch (error) {
       if (error instanceof z.ZodError) {
