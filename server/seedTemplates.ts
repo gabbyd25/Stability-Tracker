@@ -2,48 +2,30 @@ import { db } from "./db";
 import { scheduleTemplates } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
-// Preset schedule templates for cosmetic testing
-const presetTemplates = [
-  {
-    name: "Standard Cosmetic",
-    description: "Standard stability testing for cosmetic products",
-    testingIntervals: JSON.stringify([0, 1, 2, 4, 8, 13]), // Initial, Week 1, 2, 4, 8, 13
-    isPreset: true,
-  },
-  {
-    name: "Extended Stability",
-    description: "Extended testing schedule for long-term stability",
-    testingIntervals: JSON.stringify([0, 1, 2, 4, 8, 13, 26, 52]), // Include 6 months and 1 year
-    isPreset: true,
-  },
-  {
-    name: "Accelerated Testing",
-    description: "Accelerated testing schedule for quick results",
-    testingIntervals: JSON.stringify([0, 1, 2, 4, 6]), // Shorter testing period
-    isPreset: true,
-  },
-  {
-    name: "Monthly Testing",
-    description: "Monthly testing intervals",
-    testingIntervals: JSON.stringify([0, 4, 8, 13, 17, 26]), // Monthly-based testing
-    isPreset: true,
-  },
-];
+// Standard template for cosmetic testing (only one preset)
 
 export async function seedPresetTemplates() {
   try {
-    console.log("Seeding preset schedule templates...");
+    console.log("Seeding standard template...");
     
-    // Check if presets already exist
-    const existingPresets = await db.select().from(scheduleTemplates).where(eq(scheduleTemplates.isPreset, true));
+    // Check if standard template already exists
+    const existingStandard = await db.select().from(scheduleTemplates).where(eq(scheduleTemplates.isPreset, true));
     
-    if (existingPresets.length === 0) {
-      await db.insert(scheduleTemplates).values(presetTemplates);
-      console.log(`Created ${presetTemplates.length} preset schedule templates`);
+    if (existingStandard.length === 0) {
+      // Only create the Standard template as default
+      const standardTemplate = {
+        name: "Standard",
+        description: "Standard cosmetic stability testing (Initial, Week 1, 2, 4, 8, 13)",
+        testingIntervals: JSON.stringify([0, 1, 2, 4, 8, 13]),
+        isPreset: true,
+      };
+      
+      await db.insert(scheduleTemplates).values([standardTemplate]);
+      console.log("Created standard schedule template");
     } else {
-      console.log(`Found ${existingPresets.length} existing preset templates, skipping seed`);
+      console.log("Found existing standard template, skipping seed");
     }
   } catch (error) {
-    console.error("Error seeding preset templates:", error);
+    console.error("Error seeding standard template:", error);
   }
 }
