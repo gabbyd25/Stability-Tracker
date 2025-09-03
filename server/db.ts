@@ -2,6 +2,7 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
+import { ftCycleTemplates } from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
@@ -16,7 +17,7 @@ export const db = drizzle({ client: pool, schema });
 
 // PostgreSQL storage implementation
 import { IStorage } from "./storage";
-import { Product, Task, InsertProduct, InsertTask, TaskWithProduct, User, UpsertUser, ScheduleTemplate, InsertScheduleTemplate, ProductWithTemplate } from "@shared/schema";
+import { Product, Task, InsertProduct, InsertTask, TaskWithProduct, User, UpsertUser, ScheduleTemplate, InsertScheduleTemplate, ProductWithTemplate, FTCycleTemplate, InsertFTCycleTemplate } from "@shared/schema";
 import { eq, and, or } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
@@ -84,6 +85,42 @@ export class DatabaseStorage implements IStorage {
 
   async getPresetScheduleTemplates(): Promise<ScheduleTemplate[]> {
     return db.select().from(schema.scheduleTemplates).where(eq(schema.scheduleTemplates.isPreset, true));
+  }
+
+  // F/T Cycle Templates
+  async getFTCycleTemplates(userId: string): Promise<FTCycleTemplate[]> {
+    return db.select().from(schema.ftCycleTemplates).where(eq(schema.ftCycleTemplates.userId, userId));
+  }
+
+  async getFTCycleTemplate(id: string, userId: string): Promise<FTCycleTemplate | undefined> {
+    const [result] = await db.select().from(schema.ftCycleTemplates).where(
+      and(eq(schema.ftCycleTemplates.id, id), eq(schema.ftCycleTemplates.userId, userId))
+    );
+    return result || undefined;
+  }
+
+  async createFTCycleTemplate(insertTemplate: InsertFTCycleTemplate, userId: string): Promise<FTCycleTemplate> {
+    const [template] = await db.insert(schema.ftCycleTemplates).values({
+      ...insertTemplate,
+      userId
+    }).returning();
+    return template;
+  }
+
+  async updateFTCycleTemplate(id: string, userId: string, updates: Partial<FTCycleTemplate>): Promise<FTCycleTemplate | undefined> {
+    const [updatedTemplate] = await db
+      .update(schema.ftCycleTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(schema.ftCycleTemplates.id, id), eq(schema.ftCycleTemplates.userId, userId)))
+      .returning();
+    return updatedTemplate || undefined;
+  }
+
+  async deleteFTCycleTemplate(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(schema.ftCycleTemplates)
+      .where(and(eq(schema.ftCycleTemplates.id, id), eq(schema.ftCycleTemplates.userId, userId)));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Products

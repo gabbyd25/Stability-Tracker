@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProductSchema, insertTaskSchema, insertScheduleTemplateSchema } from "@shared/schema";
+import { insertProductSchema, insertTaskSchema, insertScheduleTemplateSchema, insertFTCycleTemplateSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 
@@ -82,6 +82,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Template deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete schedule template" });
+    }
+  });
+
+  // F/T Cycle Templates routes
+  app.get("/api/ft-cycle-templates", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const templates = await storage.getFTCycleTemplates(userId);
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch F/T cycle templates" });
+    }
+  });
+
+  app.post("/api/ft-cycle-templates", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertFTCycleTemplateSchema.parse(req.body);
+      const template = await storage.createFTCycleTemplate(validatedData, userId);
+      res.status(201).json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid F/T cycle template data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create F/T cycle template" });
+      }
+    }
+  });
+
+  app.patch("/api/ft-cycle-templates/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const updates = req.body;
+      const updatedTemplate = await storage.updateFTCycleTemplate(id, userId, updates);
+      if (!updatedTemplate) {
+        return res.status(404).json({ message: "F/T cycle template not found" });
+      }
+      res.json(updatedTemplate);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update F/T cycle template" });
+    }
+  });
+
+  app.delete("/api/ft-cycle-templates/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const deleted = await storage.deleteFTCycleTemplate(id, userId);
+      if (!deleted) {
+        return res.status(404).json({ message: "F/T cycle template not found" });
+      }
+      res.json({ message: "F/T cycle template deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete F/T cycle template" });
     }
   });
 

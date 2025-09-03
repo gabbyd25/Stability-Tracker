@@ -44,6 +44,17 @@ export const scheduleTemplates = pgTable("schedule_templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// F/T cycle templates table
+export const ftCycleTemplates = pgTable("ft_cycle_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: varchar("name").notNull(),
+  description: varchar("description"),
+  cycles: varchar("cycles").notNull(), // JSON array of {cycle, thawDay, testDay} objects
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const products = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -78,6 +89,13 @@ export const insertScheduleTemplateSchema = createInsertSchema(scheduleTemplates
   updatedAt: true,
 });
 
+export const insertFTCycleTemplateSchema = createInsertSchema(ftCycleTemplates).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   userId: true,
@@ -94,6 +112,8 @@ export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertScheduleTemplate = z.infer<typeof insertScheduleTemplateSchema>;
 export type ScheduleTemplate = typeof scheduleTemplates.$inferSelect;
+export type InsertFTCycleTemplate = z.infer<typeof insertFTCycleTemplateSchema>;
+export type FTCycleTemplate = typeof ftCycleTemplates.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;

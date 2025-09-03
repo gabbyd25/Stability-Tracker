@@ -1,4 +1,4 @@
-import { type Product, type InsertProduct, type Task, type InsertTask, type TaskWithProduct, type User, type UpsertUser, type ScheduleTemplate, type InsertScheduleTemplate, type ProductWithTemplate } from "@shared/schema";
+import { type Product, type InsertProduct, type Task, type InsertTask, type TaskWithProduct, type User, type UpsertUser, type ScheduleTemplate, type InsertScheduleTemplate, type ProductWithTemplate, type FTCycleTemplate, type InsertFTCycleTemplate } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -13,6 +13,13 @@ export interface IStorage {
   updateScheduleTemplate(id: string, userId: string, updates: Partial<ScheduleTemplate>): Promise<ScheduleTemplate | undefined>;
   deleteScheduleTemplate(id: string, userId: string): Promise<boolean>;
   getPresetScheduleTemplates(): Promise<ScheduleTemplate[]>;
+
+  // F/T Cycle Templates
+  getFTCycleTemplates(userId: string): Promise<FTCycleTemplate[]>;
+  getFTCycleTemplate(id: string, userId: string): Promise<FTCycleTemplate | undefined>;
+  createFTCycleTemplate(template: InsertFTCycleTemplate, userId: string): Promise<FTCycleTemplate>;
+  updateFTCycleTemplate(id: string, userId: string, updates: Partial<FTCycleTemplate>): Promise<FTCycleTemplate | undefined>;
+  deleteFTCycleTemplate(id: string, userId: string): Promise<boolean>;
 
   // Products
   getProducts(userId: string): Promise<Product[]>;
