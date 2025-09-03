@@ -1,4 +1,4 @@
-import { type Product, type InsertProduct, type Task, type InsertTask, type TaskWithProduct, type User, type UpsertUser } from "@shared/schema";
+import { type Product, type InsertProduct, type Task, type InsertTask, type TaskWithProduct, type User, type UpsertUser, type ScheduleTemplate, type InsertScheduleTemplate, type ProductWithTemplate } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -6,8 +6,17 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
 
+  // Schedule Templates
+  getScheduleTemplates(userId: string): Promise<ScheduleTemplate[]>;
+  getScheduleTemplate(id: string, userId: string): Promise<ScheduleTemplate | undefined>;
+  createScheduleTemplate(template: InsertScheduleTemplate, userId: string): Promise<ScheduleTemplate>;
+  updateScheduleTemplate(id: string, userId: string, updates: Partial<ScheduleTemplate>): Promise<ScheduleTemplate | undefined>;
+  deleteScheduleTemplate(id: string, userId: string): Promise<boolean>;
+  getPresetScheduleTemplates(): Promise<ScheduleTemplate[]>;
+
   // Products
   getProducts(userId: string): Promise<Product[]>;
+  getProductsWithTemplates(userId: string): Promise<ProductWithTemplate[]>;
   getProduct(id: string, userId: string): Promise<Product | undefined>;
   createProduct(product: InsertProduct, userId: string): Promise<Product>;
   

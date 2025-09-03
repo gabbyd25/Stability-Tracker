@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProductSchema, insertTaskSchema } from "@shared/schema";
+import { insertProductSchema, insertTaskSchema, insertScheduleTemplateSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 
@@ -18,6 +18,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Schedule Templates routes
+  app.get("/api/schedule-templates", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const templates = await storage.getScheduleTemplates(userId);
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch schedule templates" });
+    }
+  });
+
+  app.get("/api/schedule-templates/presets", async (req, res) => {
+    try {
+      const presets = await storage.getPresetScheduleTemplates();
+      res.json(presets);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch preset templates" });
+    }
+  });
+
+  app.post("/api/schedule-templates", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertScheduleTemplateSchema.parse(req.body);
+      const template = await storage.createScheduleTemplate(validatedData, userId);
+      res.status(201).json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid template data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create schedule template" });
+      }
+    }
+  });
+
+  app.patch("/api/schedule-templates/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const updates = req.body;
+      const updatedTemplate = await storage.updateScheduleTemplate(id, userId, updates);
+      if (!updatedTemplate) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(updatedTemplate);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update schedule template" });
+    }
+  });
+
+  app.delete("/api/schedule-templates/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const deleted = await storage.deleteScheduleTemplate(id, userId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json({ message: "Template deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete schedule template" });
     }
   });
 

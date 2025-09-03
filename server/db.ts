@@ -16,8 +16,8 @@ export const db = drizzle({ client: pool, schema });
 
 // PostgreSQL storage implementation
 import { IStorage } from "./storage";
-import { Product, Task, InsertProduct, InsertTask, TaskWithProduct, User, UpsertUser } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { Product, Task, InsertProduct, InsertTask, TaskWithProduct, User, UpsertUser, ScheduleTemplate, InsertScheduleTemplate, ProductWithTemplate } from "@shared/schema";
+import { eq, and, or } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   // User operations (required for Replit Auth)
@@ -41,8 +41,67 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  // Schedule Templates
+  async getScheduleTemplates(userId: string): Promise<ScheduleTemplate[]> {
+    return db.select().from(schema.scheduleTemplates).where(
+      or(eq(schema.scheduleTemplates.userId, userId), eq(schema.scheduleTemplates.isPreset, true))
+    );
+  }
+
+  async getScheduleTemplate(id: string, userId: string): Promise<ScheduleTemplate | undefined> {
+    const [result] = await db.select().from(schema.scheduleTemplates).where(
+      and(
+        eq(schema.scheduleTemplates.id, id),
+        or(eq(schema.scheduleTemplates.userId, userId), eq(schema.scheduleTemplates.isPreset, true))
+      )
+    );
+    return result || undefined;
+  }
+
+  async createScheduleTemplate(insertTemplate: InsertScheduleTemplate, userId: string): Promise<ScheduleTemplate> {
+    const [template] = await db.insert(schema.scheduleTemplates).values({
+      ...insertTemplate,
+      userId
+    }).returning();
+    return template;
+  }
+
+  async updateScheduleTemplate(id: string, userId: string, updates: Partial<ScheduleTemplate>): Promise<ScheduleTemplate | undefined> {
+    const [updatedTemplate] = await db
+      .update(schema.scheduleTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(schema.scheduleTemplates.id, id), eq(schema.scheduleTemplates.userId, userId)))
+      .returning();
+    return updatedTemplate || undefined;
+  }
+
+  async deleteScheduleTemplate(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(schema.scheduleTemplates)
+      .where(and(eq(schema.scheduleTemplates.id, id), eq(schema.scheduleTemplates.userId, userId)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getPresetScheduleTemplates(): Promise<ScheduleTemplate[]> {
+    return db.select().from(schema.scheduleTemplates).where(eq(schema.scheduleTemplates.isPreset, true));
+  }
+
+  // Products
   async getProducts(userId: string): Promise<Product[]> {
     return db.select().from(schema.products).where(eq(schema.products.userId, userId));
+  }
+
+  async getProductsWithTemplates(userId: string): Promise<ProductWithTemplate[]> {
+    const result = await db
+      .select()
+      .from(schema.products)
+      .leftJoin(schema.scheduleTemplates, eq(schema.products.scheduleTemplateId, schema.scheduleTemplates.id))
+      .where(eq(schema.products.userId, userId));
+
+    return result.map(row => ({
+      ...row.products,
+      scheduleTemplate: row.schedule_templates || undefined
+    }));
   }
 
   async getProduct(id: string, userId: string): Promise<Product | undefined> {
