@@ -14,8 +14,7 @@ export default function Landing() {
             </h1>
           </div>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Professional laboratory stability testing management for pharmaceutical and chemical products. 
-            Track schedules, manage tasks, and ensure FDA compliance with automated workflows.
+            Stability testing management for cosmetic batches. Organize tasks, monitor schedules, and sync tasks with your calendar.
           </p>
         </div>
 
