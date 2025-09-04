@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { insertProductSchema, type InsertTask, type ScheduleTemplate } from "@shared/schema";
+import { insertProductSchema, type InsertTask, type ScheduleTemplate, type FTCycleTemplate } from "@shared/schema";
 import TemplateBuilder from "@/components/TemplateBuilder";
 import FTCycleBuilder from "@/components/FTCycleBuilder";
+import FTTemplateBuilder from "@/components/FTTemplateBuilder";
 // Calendar integration removed from bulk operations
 
 const formSchema = insertProductSchema.extend({
@@ -20,6 +21,7 @@ const formSchema = insertProductSchema.extend({
   assignee: z.string().min(1, "Assignee name is required"),
   startDate: z.string().min(1, "Start date is required"),
   scheduleTemplateId: z.string().optional(),
+  ftTemplateId: z.string().optional(),
   ftCycleType: z.string().default("consecutive"),
 });
 
@@ -38,6 +40,11 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
     queryKey: ['/api/schedule-templates'],
   });
 
+  // Fetch F/T cycle templates
+  const { data: ftTemplates = [], refetch: refetchFTTemplates } = useQuery<FTCycleTemplate[]>({
+    queryKey: ['/api/ft-cycle-templates'],
+  });
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -45,6 +52,7 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
       assignee: "",
       startDate: new Date().toISOString().split('T')[0],
       scheduleTemplateId: "standard",
+      ftTemplateId: "",
       ftCycleType: "consecutive",
     },
   });
@@ -55,16 +63,18 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
       return response.json();
     },
     onSuccess: async (product) => {
-      // Generate tasks for the product using selected template and F/T cycle type
+      // Generate tasks for the product using selected templates
       const formData = form.getValues();
       const selectedTemplate = templates.find(t => t.id === formData.scheduleTemplateId);
+      const selectedFTTemplate = ftTemplates.find(t => t.id === formData.ftTemplateId);
       const tasks = generateStabilityTasks(
         product.id, 
         product.name, 
         product.startDate, 
         product.assignee,
         selectedTemplate,
-        formData.ftCycleType,
+        formData.ftTemplateId || formData.ftCycleType,
+        selectedFTTemplate,
         customFTCycles
       );
       
@@ -204,25 +214,20 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
               </p>
             </div>
 
-            {/* F/T Cycle Type Selection */}
+            {/* F/T Cycle Template Selection */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium text-gray-700">
-                  Freeze/Thaw Cycle Timing
+                  Freeze/Thaw Cycle Template
                 </Label>
-                {form.watch("ftCycleType") === "custom" && (
-                  <FTCycleBuilder 
-                    onCustomCycleSet={setCustomFTCycles}
-                    currentCycles={customFTCycles}
-                  />
-                )}
+                <FTTemplateBuilder onTemplateCreated={refetchFTTemplates} />
               </div>
               <Select
-                value={form.watch("ftCycleType") || "consecutive"}
-                onValueChange={(value) => form.setValue("ftCycleType", value)}
+                value={form.watch("ftTemplateId") || "consecutive"}
+                onValueChange={(value) => form.setValue("ftTemplateId", value === "consecutive" || value === "weekly" || value === "biweekly" ? "" : value)}
               >
                 <SelectTrigger className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200">
-                  <SelectValue />
+                  <SelectValue placeholder="Choose F/T cycle pattern..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="consecutive">
@@ -243,17 +248,28 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
                       Bi-weekly Cycles (Every 2 weeks)
                     </div>
                   </SelectItem>
-                  <SelectItem value="custom">
-                    <div className="flex items-center">
-                      <Zap className="w-4 h-4 mr-2" />
-                      Custom Cycles (Configure your own)
-                    </div>
-                  </SelectItem>
+                  {ftTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      <div className="flex items-center">
+                        <Zap className="w-4 h-4 mr-2" />
+                        {template.name}
+                        {template.description && (
+                          <span className="text-gray-500 ml-2">- {template.description}</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500">
-                Choose how freeze/thaw cycles are scheduled, or create custom timing
+                Select a standard pattern or use a custom F/T template
               </p>
+              {form.watch("ftTemplateId") && ftTemplates.find(t => t.id === form.watch("ftTemplateId")) && (
+                <FTCycleBuilder 
+                  onCustomCycleSet={setCustomFTCycles}
+                  currentCycles={customFTCycles}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -282,6 +298,7 @@ function generateStabilityTasks(
   assignee: string,
   selectedTemplate?: ScheduleTemplate,
   ftCycleType: string = "consecutive",
+  selectedFTTemplate?: FTCycleTemplate,
   customFTCycles?: any[]
 ): InsertTask[] {
   // The startDate comes in as YYYY-MM-DD format from the date input
@@ -340,8 +357,8 @@ function generateStabilityTasks(
     });
   });
 
-  // Generate Freeze/Thaw cycles based on selected type
-  generateFreezeThawTasks(tasks, productId, productName, startDate, ftCycleType, customFTCycles);
+  // Generate Freeze/Thaw cycles based on selected template or type
+  generateFreezeThawTasks(tasks, productId, productName, startDate, ftCycleType, selectedFTTemplate, customFTCycles);
 
   return tasks;
 }
@@ -352,9 +369,24 @@ function generateFreezeThawTasks(
   productName: string, 
   startDate: string, 
   ftCycleType: string,
+  selectedFTTemplate?: FTCycleTemplate,
   customFTCycles?: any[]
 ): void {
   const [year, month, day] = startDate.split('-').map(Number);
+
+  // If an F/T template is selected, use its cycles
+  if (selectedFTTemplate) {
+    try {
+      const templateCycles = JSON.parse(selectedFTTemplate.cycles);
+      templateCycles.forEach((ft: any) => {
+        addFTTasks(tasks, productId, productName, startDate, ft.cycle, ft.thawDay, ft.testDay);
+      });
+      return;
+    } catch (error) {
+      console.error("Error parsing F/T template cycles:", error);
+      // Fall back to consecutive if template parsing fails
+    }
+  }
 
   switch (ftCycleType) {
     case "consecutive":
@@ -406,13 +438,13 @@ function generateFreezeThawTasks(
         });
       } else {
         // Fall back to consecutive if no custom cycles defined
-        generateFreezeThawTasks(tasks, productId, productName, startDate, "consecutive");
+        generateFreezeThawTasks(tasks, productId, productName, startDate, "consecutive", undefined, customFTCycles);
       }
       break;
 
     default:
       // Fall back to consecutive if unknown type
-      generateFreezeThawTasks(tasks, productId, productName, startDate, "consecutive");
+      generateFreezeThawTasks(tasks, productId, productName, startDate, "consecutive", undefined, customFTCycles);
   }
 }
 
