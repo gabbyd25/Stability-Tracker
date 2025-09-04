@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Calendar, Save, X } from "lucide-react";
+import { Plus, Calendar, Save, X, Edit2 } from "lucide-react";
+import { type ScheduleTemplate } from "@shared/schema";
 
 const templateSchema = z.object({
   name: z.string().min(1, "Template name is required"),
@@ -24,6 +25,8 @@ type TemplateFormData = z.infer<typeof templateSchema>;
 
 interface TemplateBuilderProps {
   onTemplateCreated: () => void;
+  editTemplate?: ScheduleTemplate;
+  mode?: 'create' | 'edit';
 }
 
 const WEEK_OPTIONS = [
@@ -51,9 +54,9 @@ interface CustomInterval {
   days: number; // calculated value in days
 }
 
-export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderProps) {
+export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode = 'create' }: TemplateBuilderProps) {
   const [open, setOpen] = useState(false);
-  const [selectedWeeks, setSelectedWeeks] = useState<number[]>([0, 1, 2, 4, 8, 13]); // Default to standard
+  const [selectedWeeks, setSelectedWeeks] = useState<number[]>(editTemplate ? [] : [0, 1, 2, 4, 8, 13]); // Default to standard
   const [customIntervals, setCustomIntervals] = useState<CustomInterval[]>([]);
   const [customValue, setCustomValue] = useState<string>("");
   const [customUnit, setCustomUnit] = useState<'days' | 'weeks' | 'months'>('weeks');
@@ -63,18 +66,70 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
   const form = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      testingIntervals: [0, 1, 2, 4, 8, 13],
+      name: editTemplate?.name || "",
+      description: editTemplate?.description || "",
+      testingIntervals: editTemplate ? [] : [0, 1, 2, 4, 8, 13],
     },
   });
 
-  const createTemplateMutation = useMutation({
+  // Initialize edit mode data
+  useState(() => {
+    if (editTemplate) {
+      try {
+        const intervals = JSON.parse(editTemplate.testingIntervals) as number[];
+        const presetWeeks: number[] = [];
+        const customIntervalsData: CustomInterval[] = [];
+        
+        intervals.forEach(days => {
+          const weeks = days / 7;
+          // Check if this is a preset week (exact week match)
+          const presetWeek = WEEK_OPTIONS.find(option => option.value === weeks);
+          if (presetWeek) {
+            presetWeeks.push(weeks);
+          } else {
+            // This is a custom interval
+            let value: number;
+            let unit: 'days' | 'weeks' | 'months';
+            
+            if (days % 30 === 0 && days >= 30) {
+              value = days / 30;
+              unit = 'months';
+            } else if (days % 7 === 0) {
+              value = days / 7;
+              unit = 'weeks';
+            } else {
+              value = days;
+              unit = 'days';
+            }
+            
+            customIntervalsData.push({
+              id: `${Date.now()}-${Math.random()}`,
+              value,
+              unit,
+              days
+            });
+          }
+        });
+        
+        setSelectedWeeks(presetWeeks);
+        setCustomIntervals(customIntervalsData);
+        form.setValue('testingIntervals', intervals);
+      } catch (error) {
+        console.error('Error parsing edit template intervals:', error);
+      }
+    }
+  });
+
+  const saveTemplateMutation = useMutation({
     mutationFn: async (data: TemplateFormData) => {
-      const response = await apiRequest('POST', '/api/schedule-templates', {
+      const payload = {
         ...data,
         testingIntervals: JSON.stringify(data.testingIntervals),
-      });
+      };
+      
+      const response = mode === 'edit' && editTemplate
+        ? await apiRequest('PATCH', `/api/schedule-templates/${editTemplate.id}`, payload)
+        : await apiRequest('POST', '/api/schedule-templates', payload);
       return response.json();
     },
     onSuccess: () => {
@@ -88,8 +143,8 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
       setCustomUnit('weeks');
       
       toast({
-        title: "Template created successfully!",
-        description: "Your custom testing schedule is now available.",
+        title: mode === 'edit' ? "Template updated successfully!" : "Template created successfully!",
+        description: mode === 'edit' ? "Your template changes have been saved." : "Your custom testing schedule is now available.",
       });
     },
     onError: (error) => {
@@ -175,7 +230,7 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
 
   const onSubmit = (data: TemplateFormData) => {
     const allIntervals = getAllIntervals();
-    createTemplateMutation.mutate({
+    saveTemplateMutation.mutate({
       ...data,
       testingIntervals: allIntervals,
     });
@@ -188,10 +243,10 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
           variant="outline"
           size="sm"
           className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-          data-testid="button-create-template"
+          data-testid={mode === 'edit' ? "button-edit-template" : "button-create-template"}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Template
+          {mode === 'edit' ? <Edit2 className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+          {mode === 'edit' ? 'Edit Template' : 'Create Template'}
         </Button>
       </DialogTrigger>
       
@@ -199,10 +254,13 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-            Create Custom Testing Schedule
+            {mode === 'edit' ? 'Edit Testing Schedule Template' : 'Create Custom Testing Schedule'}
           </DialogTitle>
           <DialogDescription>
-            Design your own testing intervals for stability testing. Select the weeks when testing should occur.
+            {mode === 'edit' 
+              ? 'Modify your testing intervals for stability testing. Update the weeks when testing should occur.'
+              : 'Design your own testing intervals for stability testing. Select the weeks when testing should occur.'
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -376,12 +434,12 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
             </Button>
             <Button
               type="submit"
-              disabled={createTemplateMutation.isPending || (selectedWeeks.length === 0 && customIntervals.length === 0)}
+              disabled={saveTemplateMutation.isPending || (selectedWeeks.length === 0 && customIntervals.length === 0)}
               className="bg-blue-600 hover:bg-blue-700"
               data-testid="button-save-template"
             >
               <Save className="w-4 h-4 mr-2" />
-              {createTemplateMutation.isPending ? "Creating..." : "Create Template"}
+              {saveTemplateMutation.isPending ? (mode === 'edit' ? "Updating..." : "Creating...") : (mode === 'edit' ? "Update Template" : "Create Template")}
             </Button>
           </div>
         </form>

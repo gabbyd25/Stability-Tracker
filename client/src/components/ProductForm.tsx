@@ -14,6 +14,7 @@ import { insertProductSchema, type InsertTask, type ScheduleTemplate, type FTCyc
 import TemplateBuilder from "@/components/TemplateBuilder";
 import FTCycleBuilder from "@/components/FTCycleBuilder";
 import FTTemplateBuilder from "@/components/FTTemplateBuilder";
+import TemplateManager from "@/components/TemplateManager";
 // Calendar integration removed from bulk operations
 
 const formSchema = insertProductSchema.extend({
@@ -168,9 +169,12 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
 
         {/* Schedule Configuration Section */}
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-6 border border-blue-100">
-          <div className="flex items-center mb-4">
-            <Calendar className="w-5 h-5 text-blue-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-800">Testing Schedule Configuration</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <Calendar className="w-5 h-5 text-blue-600 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-800">Testing Schedule Configuration</h3>
+            </div>
+            <TemplateManager onTemplateUpdated={() => { refetchTemplates(); refetchFTTemplates(); }} />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

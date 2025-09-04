@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Zap, Save, Minus } from "lucide-react";
+import { Plus, Zap, Save, Minus, Edit2 } from "lucide-react";
+import { type FTCycleTemplate } from "@shared/schema";
 
 const templateSchema = z.object({
   name: z.string().min(1, "Template name is required"),
@@ -32,33 +33,54 @@ interface FTCycle {
 
 interface FTTemplateBuilderProps {
   onTemplateCreated: () => void;
+  editTemplate?: FTCycleTemplate;
+  mode?: 'create' | 'edit';
 }
 
-export default function FTTemplateBuilder({ onTemplateCreated }: FTTemplateBuilderProps) {
+export default function FTTemplateBuilder({ onTemplateCreated, editTemplate, mode = 'create' }: FTTemplateBuilderProps) {
   const [open, setOpen] = useState(false);
-  const [cycles, setCycles] = useState<FTCycle[]>([
-    { cycle: 1, thawDay: 1, testDay: 2 },
-    { cycle: 2, thawDay: 3, testDay: 4 },
-    { cycle: 3, thawDay: 5, testDay: 6 }
-  ]);
+  const [cycles, setCycles] = useState<FTCycle[]>(
+    editTemplate ? [] : [
+      { cycle: 1, thawDay: 1, testDay: 2 },
+      { cycle: 2, thawDay: 3, testDay: 4 },
+      { cycle: 3, thawDay: 5, testDay: 6 }
+    ]
+  );
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const form = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      cycles,
+      name: editTemplate?.name || "",
+      description: editTemplate?.description || "",
+      cycles: editTemplate ? [] : cycles,
     },
   });
 
-  const createTemplateMutation = useMutation({
+  // Initialize edit mode data
+  useState(() => {
+    if (editTemplate) {
+      try {
+        const templateCycles = JSON.parse(editTemplate.cycles);
+        setCycles(templateCycles);
+        form.setValue('cycles', templateCycles);
+      } catch (error) {
+        console.error('Error parsing edit template cycles:', error);
+      }
+    }
+  });
+
+  const saveTemplateMutation = useMutation({
     mutationFn: async (data: TemplateFormData) => {
-      const response = await apiRequest('POST', '/api/ft-cycle-templates', {
+      const payload = {
         ...data,
         cycles: JSON.stringify(data.cycles),
-      });
+      };
+      
+      const response = mode === 'edit' && editTemplate
+        ? await apiRequest('PATCH', `/api/ft-cycle-templates/${editTemplate.id}`, payload)
+        : await apiRequest('POST', '/api/ft-cycle-templates', payload);
       return response.json();
     },
     onSuccess: () => {
@@ -73,8 +95,8 @@ export default function FTTemplateBuilder({ onTemplateCreated }: FTTemplateBuild
       ]);
       
       toast({
-        title: "F/T template created successfully!",
-        description: "Your custom freeze/thaw pattern is now available.",
+        title: mode === 'edit' ? "F/T template updated successfully!" : "F/T template created successfully!",
+        description: mode === 'edit' ? "Your template changes have been saved." : "Your custom freeze/thaw pattern is now available.",
       });
     },
     onError: (error) => {
@@ -126,7 +148,7 @@ export default function FTTemplateBuilder({ onTemplateCreated }: FTTemplateBuild
       return;
     }
 
-    createTemplateMutation.mutate({
+    saveTemplateMutation.mutate({
       ...data,
       cycles,
     });
@@ -139,10 +161,10 @@ export default function FTTemplateBuilder({ onTemplateCreated }: FTTemplateBuild
           variant="outline"
           size="sm"
           className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
-          data-testid="button-create-ft-template"
+          data-testid={mode === 'edit' ? "button-edit-ft-template" : "button-create-ft-template"}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Template
+          {mode === 'edit' ? <Edit2 className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+          {mode === 'edit' ? 'Edit Template' : 'Create Template'}
         </Button>
       </DialogTrigger>
       
@@ -150,10 +172,13 @@ export default function FTTemplateBuilder({ onTemplateCreated }: FTTemplateBuild
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Zap className="w-5 h-5 mr-2 text-purple-600" />
-            Create F/T Cycle Template
+            {mode === 'edit' ? 'Edit F/T Cycle Template' : 'Create F/T Cycle Template'}
           </DialogTitle>
           <DialogDescription>
-            Design your own freeze/thaw cycle pattern. Define when to thaw and test for each cycle.
+            {mode === 'edit'
+              ? 'Modify your freeze/thaw cycle pattern. Update when to thaw and test for each cycle.'
+              : 'Design your own freeze/thaw cycle pattern. Define when to thaw and test for each cycle.'
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -282,12 +307,12 @@ export default function FTTemplateBuilder({ onTemplateCreated }: FTTemplateBuild
             </Button>
             <Button
               type="submit"
-              disabled={createTemplateMutation.isPending || cycles.length === 0}
+              disabled={saveTemplateMutation.isPending || cycles.length === 0}
               className="bg-purple-600 hover:bg-purple-700"
               data-testid="button-save-ft-template"
             >
               <Save className="w-4 h-4 mr-2" />
-              {createTemplateMutation.isPending ? "Creating..." : "Create Template"}
+              {saveTemplateMutation.isPending ? (mode === 'edit' ? "Updating..." : "Creating...") : (mode === 'edit' ? "Update Template" : "Create Template")}
             </Button>
           </div>
         </form>
