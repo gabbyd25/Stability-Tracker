@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Calendar, Save } from "lucide-react";
+import { Plus, Calendar, Save, X } from "lucide-react";
 
 const templateSchema = z.object({
   name: z.string().min(1, "Template name is required"),
@@ -43,9 +44,19 @@ const WEEK_OPTIONS = [
   { value: 52, label: "Week 52" },
 ];
 
+interface CustomInterval {
+  id: string;
+  value: number;
+  unit: 'days' | 'weeks' | 'months';
+  days: number; // calculated value in days
+}
+
 export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderProps) {
   const [open, setOpen] = useState(false);
   const [selectedWeeks, setSelectedWeeks] = useState<number[]>([0, 1, 2, 4, 8, 13]); // Default to standard
+  const [customIntervals, setCustomIntervals] = useState<CustomInterval[]>([]);
+  const [customValue, setCustomValue] = useState<string>("");
+  const [customUnit, setCustomUnit] = useState<'days' | 'weeks' | 'months'>('weeks');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -72,6 +83,9 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
       setOpen(false);
       form.reset();
       setSelectedWeeks([0, 1, 2, 4, 8, 13]);
+      setCustomIntervals([]);
+      setCustomValue("");
+      setCustomUnit('weeks');
       
       toast({
         title: "Template created successfully!",
@@ -87,19 +101,83 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
     },
   });
 
+  const convertToDays = (value: number, unit: 'days' | 'weeks' | 'months'): number => {
+    switch (unit) {
+      case 'days':
+        return value;
+      case 'weeks':
+        return value * 7;
+      case 'months':
+        return value * 30; // Approximate month as 30 days
+      default:
+        return value;
+    }
+  };
+
+  const getAllIntervals = (): number[] => {
+    // Convert preset weeks to days
+    const presetDays = selectedWeeks.map(week => week * 7);
+    // Get custom interval days
+    const customDays = customIntervals.map(interval => interval.days);
+    // Combine and sort
+    return [...presetDays, ...customDays].sort((a, b) => a - b);
+  };
+
   const handleWeekChange = (week: number, checked: boolean) => {
     const newWeeks = checked 
       ? [...selectedWeeks, week].sort((a, b) => a - b)
       : selectedWeeks.filter(w => w !== week);
     
     setSelectedWeeks(newWeeks);
-    form.setValue('testingIntervals', newWeeks);
+    updateFormIntervals(newWeeks, customIntervals);
+  };
+
+  const addCustomInterval = () => {
+    const value = parseInt(customValue);
+    if (!value || value <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Invalid interval",
+        description: "Please enter a valid positive number.",
+      });
+      return;
+    }
+
+    const days = convertToDays(value, customUnit);
+    const newInterval: CustomInterval = {
+      id: `${Date.now()}-${Math.random()}`,
+      value,
+      unit: customUnit,
+      days,
+    };
+
+    const newCustomIntervals = [...customIntervals, newInterval];
+    setCustomIntervals(newCustomIntervals);
+    updateFormIntervals(selectedWeeks, newCustomIntervals);
+    setCustomValue("");
+  };
+
+  const removeCustomInterval = (id: string) => {
+    const newCustomIntervals = customIntervals.filter(interval => interval.id !== id);
+    setCustomIntervals(newCustomIntervals);
+    updateFormIntervals(selectedWeeks, newCustomIntervals);
+  };
+
+  const updateFormIntervals = (weeks: number[], customs: CustomInterval[]) => {
+    // Convert preset weeks to days
+    const presetDays = weeks.map(week => week * 7);
+    // Get custom interval days
+    const customDays = customs.map(interval => interval.days);
+    // Combine and sort
+    const allIntervals = [...presetDays, ...customDays].sort((a, b) => a - b);
+    form.setValue('testingIntervals', allIntervals);
   };
 
   const onSubmit = (data: TemplateFormData) => {
+    const allIntervals = getAllIntervals();
     createTemplateMutation.mutate({
       ...data,
-      testingIntervals: selectedWeeks,
+      testingIntervals: allIntervals,
     });
   };
 
@@ -160,7 +238,7 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
             <div className="flex items-center justify-between">
               <Label className="text-base font-medium">Testing Intervals</Label>
               <span className="text-sm text-gray-500">
-                {selectedWeeks.length} interval{selectedWeeks.length !== 1 ? 's' : ''} selected
+                {selectedWeeks.length + customIntervals.length} interval{selectedWeeks.length + customIntervals.length !== 1 ? 's' : ''} selected
               </span>
             </div>
             
@@ -186,17 +264,104 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
             {form.formState.errors.testingIntervals && (
               <p className="text-red-500 text-sm">{form.formState.errors.testingIntervals.message}</p>
             )}
+
+            {/* Custom Intervals Section */}
+            <div className="space-y-3 pt-4 border-t border-gray-200">
+              <Label className="text-base font-medium">Custom Intervals</Label>
+              <p className="text-sm text-gray-600">Add specific testing intervals not covered by the preset options above.</p>
+              
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="e.g., 5"
+                  value={customValue}
+                  onChange={(e) => setCustomValue(e.target.value)}
+                  className="w-20"
+                  data-testid="input-custom-interval-value"
+                />
+                <Select value={customUnit} onValueChange={(value: 'days' | 'weeks' | 'months') => setCustomUnit(value)}>
+                  <SelectTrigger className="w-24" data-testid="select-custom-interval-unit">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="days">Days</SelectItem>
+                    <SelectItem value="weeks">Weeks</SelectItem>
+                    <SelectItem value="months">Months</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addCustomInterval}
+                  disabled={!customValue || parseInt(customValue) <= 0}
+                  data-testid="button-add-custom-interval"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add
+                </Button>
+              </div>
+
+              {/* List of added custom intervals */}
+              {customIntervals.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Added Custom Intervals:</Label>
+                  <div className="space-y-1">
+                    {customIntervals.map((interval) => (
+                      <div key={interval.id} className="flex items-center justify-between bg-blue-50 p-2 rounded">
+                        <span className="text-sm text-blue-700">
+                          {interval.value} {interval.unit} ({interval.days} days)
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeCustomInterval(interval.id)}
+                          className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
+                          data-testid={`button-remove-custom-interval-${interval.id}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Preview */}
           <div className="bg-blue-50 p-4 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">Preview</h4>
-            <p className="text-sm text-blue-700">
-              Testing will occur at: {selectedWeeks.length > 0 
-                ? selectedWeeks.map(w => w === 0 ? 'Initial' : `Week ${w}`).join(', ')
-                : 'No intervals selected'
-              }
-            </p>
+            <div className="text-sm text-blue-700">
+              {(() => {
+                const allIntervals = getAllIntervals();
+                if (allIntervals.length === 0) {
+                  return <p>No intervals selected</p>;
+                }
+                
+                const formatInterval = (days: number): string => {
+                  if (days === 0) return 'Initial';
+                  if (days % 30 === 0 && days >= 30) return `Month ${days / 30}`;
+                  if (days % 7 === 0) return `Week ${days / 7}`;
+                  return `Day ${days}`;
+                };
+                
+                return (
+                  <div>
+                    <p className="mb-2"><strong>Testing will occur at:</strong></p>
+                    <div className="flex flex-wrap gap-1">
+                      {allIntervals.map((days, index) => (
+                        <span key={index} className="bg-blue-100 px-2 py-1 rounded text-xs">
+                          {formatInterval(days)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
 
           {/* Actions */}
@@ -211,7 +376,7 @@ export default function TemplateBuilder({ onTemplateCreated }: TemplateBuilderPr
             </Button>
             <Button
               type="submit"
-              disabled={createTemplateMutation.isPending || selectedWeeks.length === 0}
+              disabled={createTemplateMutation.isPending || (selectedWeeks.length === 0 && customIntervals.length === 0)}
               className="bg-blue-600 hover:bg-blue-700"
               data-testid="button-save-template"
             >
