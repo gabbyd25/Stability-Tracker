@@ -68,13 +68,15 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
       const formData = form.getValues();
       const selectedTemplate = templates.find(t => t.id === formData.scheduleTemplateId);
       const selectedFTTemplate = ftTemplates.find(t => t.id === formData.ftTemplateId);
+      // Use ftCycleType if no custom template is selected, otherwise use "custom"
+      const effectiveFtCycleType = formData.ftTemplateId ? "custom" : (formData.ftCycleType || "consecutive");
       const tasks = generateStabilityTasks(
         product.id, 
         product.name, 
         product.startDate, 
         product.assignee,
         selectedTemplate,
-        formData.ftTemplateId || formData.ftCycleType,
+        effectiveFtCycleType,
         selectedFTTemplate,
         customFTCycles
       );
@@ -227,8 +229,18 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
                 <FTTemplateBuilder onTemplateCreated={refetchFTTemplates} />
               </div>
               <Select
-                value={form.watch("ftTemplateId") || "consecutive"}
-                onValueChange={(value) => form.setValue("ftTemplateId", value === "consecutive" || value === "weekly" || value === "biweekly" ? "" : value)}
+                value={form.watch("ftTemplateId") || form.watch("ftCycleType") || "consecutive"}
+                onValueChange={(value) => {
+                  if (value === "consecutive" || value === "weekly" || value === "biweekly") {
+                    // For preset cycle types, clear template ID and set cycle type
+                    form.setValue("ftTemplateId", "");
+                    form.setValue("ftCycleType", value);
+                  } else {
+                    // For custom templates, set template ID and clear cycle type
+                    form.setValue("ftTemplateId", value);
+                    form.setValue("ftCycleType", "");
+                  }
+                }}
               >
                 <SelectTrigger className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200">
                   <SelectValue placeholder="Choose F/T cycle pattern..." />
