@@ -208,13 +208,8 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
       isPreset: false
     }));
     
-    console.log('Custom intervals raw:', customIntervals);
-    console.log('Custom intervals enhanced:', customIntervalsEnhanced);
-    
     // Combine and sort by days
-    const allIntervals = [...presetIntervals, ...customIntervalsEnhanced].sort((a, b) => a.days - b.days);
-    console.log('All intervals final:', allIntervals);
-    return allIntervals;
+    return [...presetIntervals, ...customIntervalsEnhanced].sort((a, b) => a.days - b.days);
   };
 
   const handleWeekChange = (week: number, checked: boolean) => {
@@ -245,9 +240,6 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
       days,
     };
 
-    console.log('Custom interval created:', newInterval);
-    console.log('All custom intervals after adding:', [...customIntervals, newInterval]);
-
     const newCustomIntervals = [...customIntervals, newInterval];
     setCustomIntervals(newCustomIntervals);
     updateFormIntervals(selectedWeeks, newCustomIntervals);
@@ -267,8 +259,6 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
 
   const onSubmit = (data: TemplateFormData) => {
     const allIntervals = getAllIntervals();
-    console.log('Template intervals being saved:', allIntervals);
-    console.log('Template intervals stringified:', JSON.stringify(allIntervals));
     
     // Don't use the form's testingIntervals, use our fresh enhanced data
     const payload = {

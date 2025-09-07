@@ -75,15 +75,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;
-      console.log('Delete template request:', { userId, templateId: id });
       const deleted = await storage.deleteScheduleTemplate(id, userId);
-      console.log('Delete result:', deleted);
       if (!deleted) {
         return res.status(404).json({ message: "Template not found" });
       }
       res.json({ message: "Template deleted successfully" });
     } catch (error) {
       console.error('Delete template error:', error);
+      // Check if it's our custom error about templates being in use
+      if (error instanceof Error && error.message.includes('currently being used')) {
+        return res.status(400).json({ message: error.message });
+      }
       res.status(500).json({ message: "Failed to delete schedule template" });
     }
   });

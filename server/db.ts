@@ -18,7 +18,7 @@ export const db = drizzle({ client: pool, schema });
 // PostgreSQL storage implementation
 import { IStorage } from "./storage";
 import { Product, Task, InsertProduct, InsertTask, TaskWithProduct, User, UpsertUser, ScheduleTemplate, InsertScheduleTemplate, ProductWithTemplate, FTCycleTemplate, InsertFTCycleTemplate } from "@shared/schema";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   // User operations (required for Replit Auth)
@@ -77,6 +77,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteScheduleTemplate(id: string, userId: string): Promise<boolean> {
+    // First check if any products are using this template
+    const productsUsingTemplate = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.products)
+      .where(eq(schema.products.scheduleTemplateId, id));
+    
+    if (productsUsingTemplate[0]?.count > 0) {
+      throw new Error(`Cannot delete template. It is currently being used by ${productsUsingTemplate[0].count} product(s). Please remove the template from all products before deleting.`);
+    }
+
     const result = await db
       .delete(schema.scheduleTemplates)
       .where(and(eq(schema.scheduleTemplates.id, id), eq(schema.scheduleTemplates.userId, userId)));
