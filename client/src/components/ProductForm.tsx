@@ -335,10 +335,24 @@ function generateStabilityTasks(
   if (selectedTemplate) {
     try {
       const intervals = JSON.parse(selectedTemplate.testingIntervals);
-      weeklySchedule = intervals.map((week: number, index: number) => ({
-        name: week === 0 ? 'Initial' : `Week ${week}`,
-        days: week * 7
-      }));
+      weeklySchedule = intervals.map((days: number) => {
+        // Generate appropriate name based on the number of days
+        let name: string;
+        if (days === 0) {
+          name = 'Initial';
+        } else if (days < 7) {
+          name = `Day ${days}`;
+        } else if (days % 7 === 0) {
+          name = `Week ${days / 7}`;
+        } else {
+          name = `Day ${days}`;
+        }
+        
+        return {
+          name,
+          days // Use the stored days directly (don't multiply by 7 again)
+        };
+      });
     } catch (error) {
       console.error("Error parsing template intervals:", error);
       // Fall back to default schedule
