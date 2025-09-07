@@ -334,9 +334,17 @@ function generateStabilityTasks(
   // If a template is selected, use its schedule
   if (selectedTemplate) {
     try {
-      const intervals = JSON.parse(selectedTemplate.testingIntervals);
       console.log('Template being used:', selectedTemplate.name);
       console.log('Raw testingIntervals string:', selectedTemplate.testingIntervals);
+      console.log('Type of testingIntervals:', typeof selectedTemplate.testingIntervals);
+      
+      let intervals;
+      if (typeof selectedTemplate.testingIntervals === 'string') {
+        intervals = JSON.parse(selectedTemplate.testingIntervals);
+      } else {
+        intervals = selectedTemplate.testingIntervals;
+      }
+      
       console.log('Parsed intervals:', intervals);
       weeklySchedule = intervals.map((interval: any) => {
         // Handle both old format (numbers) and new format (objects with metadata)
@@ -383,6 +391,11 @@ function generateStabilityTasks(
       });
     } catch (error) {
       console.error("Error parsing template intervals:", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        type: typeof error,
+        errorObject: error
+      });
       // Fall back to default schedule
     }
   }
