@@ -208,8 +208,13 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
       isPreset: false
     }));
     
+    console.log('Custom intervals raw:', customIntervals);
+    console.log('Custom intervals enhanced:', customIntervalsEnhanced);
+    
     // Combine and sort by days
-    return [...presetIntervals, ...customIntervalsEnhanced].sort((a, b) => a.days - b.days);
+    const allIntervals = [...presetIntervals, ...customIntervalsEnhanced].sort((a, b) => a.days - b.days);
+    console.log('All intervals final:', allIntervals);
+    return allIntervals;
   };
 
   const handleWeekChange = (week: number, checked: boolean) => {
@@ -239,6 +244,9 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
       unit: customUnit,
       days,
     };
+
+    console.log('Custom interval created:', newInterval);
+    console.log('All custom intervals after adding:', [...customIntervals, newInterval]);
 
     const newCustomIntervals = [...customIntervals, newInterval];
     setCustomIntervals(newCustomIntervals);
