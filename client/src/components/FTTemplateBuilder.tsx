@@ -20,6 +20,9 @@ const templateSchema = z.object({
     cycle: z.number(),
     thawDay: z.number().min(1, "Thaw day must be at least 1"),
     testDay: z.number().min(1, "Test day must be at least 1"),
+  }).refine((data) => data.testDay === data.thawDay + 1, {
+    message: "Test day must be exactly 1 day after thaw day",
+    path: ["testDay"]
   })).min(1, "At least one cycle is required"),
 });
 
@@ -129,21 +132,37 @@ export default function FTTemplateBuilder({ onTemplateCreated, editTemplate, mod
   };
 
   const updateCycle = (index: number, field: keyof FTCycle, value: number) => {
-    const newCycles = cycles.map((cycle, i) => 
-      i === index ? { ...cycle, [field]: value } : cycle
-    );
+    const newCycles = cycles.map((cycle, i) => {
+      if (i === index) {
+        if (field === 'thawDay') {
+          // When thaw day changes, automatically set test day to thaw day + 1
+          return { ...cycle, thawDay: value, testDay: value + 1 };
+        } else if (field === 'testDay') {
+          // For test day, ensure it's exactly thaw day + 1
+          const thawDay = cycle.thawDay;
+          if (value !== thawDay + 1) {
+            // Auto-correct to maintain 1-day rule
+            return { ...cycle, testDay: thawDay + 1 };
+          }
+          return { ...cycle, [field]: value };
+        } else {
+          return { ...cycle, [field]: value };
+        }
+      }
+      return cycle;
+    });
     setCycles(newCycles);
     form.setValue('cycles', newCycles);
   };
 
   const onSubmit = (data: TemplateFormData) => {
-    // Validate that test day is after thaw day for each cycle
-    const invalidCycles = data.cycles.filter(cycle => cycle.testDay <= cycle.thawDay);
+    // Validate that test day is exactly 1 day after thaw day for each cycle
+    const invalidCycles = data.cycles.filter(cycle => cycle.testDay !== cycle.thawDay + 1);
     if (invalidCycles.length > 0) {
       toast({
         variant: "destructive",
         title: "Invalid cycle configuration",
-        description: "Test day must be after thaw day for each cycle.",
+        description: "Test day must be exactly 1 day after thaw day for each cycle.",
       });
       return;
     }
