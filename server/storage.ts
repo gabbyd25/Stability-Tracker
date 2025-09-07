@@ -134,9 +134,27 @@ export class MemStorage implements IStorage {
 
   async deleteScheduleTemplate(id: string, userId: string): Promise<boolean> {
     const template = this.scheduleTemplates.get(id);
-    if (!template || template.userId !== userId) return false;
+    console.log('Delete template storage:', { 
+      templateId: id, 
+      requestUserId: userId, 
+      templateExists: !!template,
+      templateUserId: template?.userId,
+      templateIsPreset: template?.isPreset 
+    });
     
-    return this.scheduleTemplates.delete(id);
+    if (!template) {
+      console.log('Template not found');
+      return false;
+    }
+    
+    if (template.userId !== userId) {
+      console.log('User ID mismatch or template is preset');
+      return false;
+    }
+    
+    const deleteResult = this.scheduleTemplates.delete(id);
+    console.log('Delete operation result:', deleteResult);
+    return deleteResult;
   }
 
   async getPresetScheduleTemplates(): Promise<ScheduleTemplate[]> {
