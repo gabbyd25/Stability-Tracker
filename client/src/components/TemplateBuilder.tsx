@@ -261,7 +261,7 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
     const allIntervals = getAllIntervals();
     saveTemplateMutation.mutate({
       ...data,
-      testingIntervals: allIntervals,
+      testingIntervals: JSON.stringify(allIntervals),
     });
   };
 
