@@ -259,6 +259,8 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
 
   const onSubmit = (data: TemplateFormData) => {
     const allIntervals = getAllIntervals();
+    console.log('Template intervals being saved:', allIntervals);
+    console.log('Template intervals stringified:', JSON.stringify(allIntervals));
     saveTemplateMutation.mutate({
       ...data,
       testingIntervals: JSON.stringify(allIntervals),

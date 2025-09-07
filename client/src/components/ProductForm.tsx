@@ -335,6 +335,9 @@ function generateStabilityTasks(
   if (selectedTemplate) {
     try {
       const intervals = JSON.parse(selectedTemplate.testingIntervals);
+      console.log('Template being used:', selectedTemplate.name);
+      console.log('Raw testingIntervals string:', selectedTemplate.testingIntervals);
+      console.log('Parsed intervals:', intervals);
       weeklySchedule = intervals.map((interval: any) => {
         // Handle both old format (numbers) and new format (objects with metadata)
         let days: number;
