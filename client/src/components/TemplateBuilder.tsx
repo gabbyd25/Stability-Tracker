@@ -18,7 +18,10 @@ import { type ScheduleTemplate } from "@shared/schema";
 const templateSchema = z.object({
   name: z.string().min(1, "Template name is required"),
   description: z.string().optional(),
-  testingIntervals: z.array(z.number()).min(1, "At least one testing interval is required"),
+  testingIntervals: z.any().refine(
+    (val) => Array.isArray(val) && val.length > 0,
+    "At least one testing interval is required"
+  ),
 });
 
 type TemplateFormData = z.infer<typeof templateSchema>;
@@ -76,44 +79,63 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
   useState(() => {
     if (editTemplate) {
       try {
-        const intervals = JSON.parse(editTemplate.testingIntervals) as number[];
+        const intervals = JSON.parse(editTemplate.testingIntervals);
         const presetWeeks: number[] = [];
         const customIntervalsData: CustomInterval[] = [];
         
-        intervals.forEach(days => {
-          const weeks = days / 7;
-          // Check if this is a preset week (exact week match)
-          const presetWeek = WEEK_OPTIONS.find(option => option.value === weeks);
-          if (presetWeek) {
-            presetWeeks.push(weeks);
+        // Handle both old format (array of numbers) and new format (array of objects)
+        if (Array.isArray(intervals) && intervals.length > 0) {
+          if (typeof intervals[0] === 'number') {
+            // Old format - array of day numbers
+            intervals.forEach((days: number) => {
+              const weeks = days / 7;
+              const presetWeek = WEEK_OPTIONS.find(option => option.value === weeks);
+              if (presetWeek) {
+                presetWeeks.push(weeks);
+              } else {
+                // Reconstruct custom interval from days
+                let value: number;
+                let unit: 'days' | 'weeks' | 'months';
+                
+                if (days % 30 === 0 && days >= 30) {
+                  value = days / 30;
+                  unit = 'months';
+                } else if (days % 7 === 0 && days >= 7) {
+                  value = days / 7;
+                  unit = 'weeks';
+                } else {
+                  value = days;
+                  unit = 'days';
+                }
+                
+                customIntervalsData.push({
+                  id: `${Date.now()}-${Math.random()}`,
+                  value,
+                  unit,
+                  days,
+                });
+              }
+            });
           } else {
-            // This is a custom interval
-            let value: number;
-            let unit: 'days' | 'weeks' | 'months';
-            
-            if (days % 30 === 0 && days >= 30) {
-              value = days / 30;
-              unit = 'months';
-            } else if (days % 7 === 0) {
-              value = days / 7;
-              unit = 'weeks';
-            } else {
-              value = days;
-              unit = 'days';
-            }
-            
-            customIntervalsData.push({
-              id: `${Date.now()}-${Math.random()}`,
-              value,
-              unit,
-              days
+            // New format - array of interval objects
+            intervals.forEach((interval: any) => {
+              if (interval.type === 'preset') {
+                presetWeeks.push(interval.value);
+              } else {
+                customIntervalsData.push({
+                  id: `${Date.now()}-${Math.random()}`,
+                  value: interval.value,
+                  unit: interval.unit,
+                  days: interval.days,
+                });
+              }
             });
           }
-        });
+        }
         
         setSelectedWeeks(presetWeeks);
         setCustomIntervals(customIntervalsData);
-        form.setValue('testingIntervals', intervals);
+        updateFormIntervals(presetWeeks, customIntervalsData);
       } catch (error) {
         console.error('Error parsing edit template intervals:', error);
       }
@@ -169,13 +191,25 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
     }
   };
 
-  const getAllIntervals = (): number[] => {
-    // Convert preset weeks to days
-    const presetDays = selectedWeeks.map(week => week * 7);
-    // Get custom interval days
-    const customDays = customIntervals.map(interval => interval.days);
-    // Combine and sort
-    return [...presetDays, ...customDays].sort((a, b) => a - b);
+  const getAllIntervals = () => {
+    // Convert preset weeks to enhanced interval objects
+    const presetIntervals = selectedWeeks.map(week => ({
+      days: week * 7,
+      originalUnit: 'weeks' as const,
+      originalValue: week,
+      isPreset: true
+    }));
+    
+    // Convert custom intervals to enhanced interval objects  
+    const customIntervalsEnhanced = customIntervals.map(interval => ({
+      days: interval.days,
+      originalUnit: interval.unit,
+      originalValue: interval.value,
+      isPreset: false
+    }));
+    
+    // Combine and sort by days
+    return [...presetIntervals, ...customIntervalsEnhanced].sort((a, b) => a.days - b.days);
   };
 
   const handleWeekChange = (week: number, checked: boolean) => {
@@ -219,12 +253,7 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
   };
 
   const updateFormIntervals = (weeks: number[], customs: CustomInterval[]) => {
-    // Convert preset weeks to days
-    const presetDays = weeks.map(week => week * 7);
-    // Get custom interval days
-    const customDays = customs.map(interval => interval.days);
-    // Combine and sort
-    const allIntervals = [...presetDays, ...customDays].sort((a, b) => a - b);
+    const allIntervals = getAllIntervals();
     form.setValue('testingIntervals', allIntervals);
   };
 
@@ -320,7 +349,11 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
             </div>
 
             {form.formState.errors.testingIntervals && (
-              <p className="text-red-500 text-sm">{form.formState.errors.testingIntervals.message}</p>
+              <p className="text-red-500 text-sm">
+                {typeof form.formState.errors.testingIntervals.message === 'string' 
+                  ? form.formState.errors.testingIntervals.message 
+                  : 'Please select at least one testing interval'}
+              </p>
             )}
 
             {/* Custom Intervals Section */}
@@ -399,20 +432,27 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
                   return <p>No intervals selected</p>;
                 }
                 
-                const formatInterval = (days: number): string => {
-                  if (days === 0) return 'Initial';
-                  if (days % 30 === 0 && days >= 30) return `Month ${days / 30}`;
-                  if (days % 7 === 0) return `Week ${days / 7}`;
-                  return `Day ${days}`;
+                const formatInterval = (interval: any): string => {
+                  if (interval.days === 0) return 'Initial';
+                  // Use original unit for better naming
+                  if (interval.originalUnit === 'months') {
+                    return `Month ${interval.originalValue}`;
+                  } else if (interval.originalUnit === 'weeks') {
+                    return `Week ${interval.originalValue}`;
+                  } else if (interval.originalUnit === 'days') {
+                    return `Day ${interval.originalValue}`;
+                  }
+                  // Fallback to day-based naming
+                  return `Day ${interval.days}`;
                 };
                 
                 return (
                   <div>
                     <p className="mb-2"><strong>Testing will occur at:</strong></p>
                     <div className="flex flex-wrap gap-1">
-                      {allIntervals.map((days, index) => (
+                      {allIntervals.map((interval, index) => (
                         <span key={index} className="bg-blue-100 px-2 py-1 rounded text-xs">
-                          {formatInterval(days)}
+                          {formatInterval(interval)}
                         </span>
                       ))}
                     </div>

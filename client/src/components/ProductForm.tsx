@@ -335,23 +335,48 @@ function generateStabilityTasks(
   if (selectedTemplate) {
     try {
       const intervals = JSON.parse(selectedTemplate.testingIntervals);
-      weeklySchedule = intervals.map((days: number) => {
-        // Generate appropriate name based on the number of days
+      weeklySchedule = intervals.map((interval: any) => {
+        // Handle both old format (numbers) and new format (objects with metadata)
+        let days: number;
         let name: string;
-        if (days === 0) {
-          name = 'Initial';
-        } else if (days < 7) {
-          name = `Day ${days}`;
-        } else if (days % 7 === 0) {
-          name = `Week ${days / 7}`;
+        
+        if (typeof interval === 'number') {
+          // Old format - just day numbers
+          days = interval;
+          if (days === 0) {
+            name = 'Initial';
+          } else if (days < 7) {
+            name = `Day ${days}`;
+          } else if (days % 7 === 0) {
+            name = `Week ${days / 7}`;
+          } else {
+            name = `Day ${days}`;
+          }
         } else {
-          name = `Day ${days}`;
+          // New format - objects with original unit metadata
+          days = interval.days;
+          if (days === 0) {
+            name = 'Initial';
+          } else {
+            // Use original unit for naming
+            switch (interval.originalUnit) {
+              case 'days':
+                name = `Day ${interval.originalValue}`;
+                break;
+              case 'weeks':
+                name = interval.originalValue === 1 ? 'Week 1' : `Week ${interval.originalValue}`;
+                break;
+              case 'months':
+                name = interval.originalValue === 1 ? 'Month 1' : `Month ${interval.originalValue}`;
+                break;
+              default:
+                // Fallback to day-based naming
+                name = days < 7 ? `Day ${days}` : `Week ${Math.round(days / 7)}`;
+            }
+          }
         }
         
-        return {
-          name,
-          days // Use the stored days directly (don't multiply by 7 again)
-        };
+        return { name, days };
       });
     } catch (error) {
       console.error("Error parsing template intervals:", error);
