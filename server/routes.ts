@@ -161,7 +161,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       console.log('Product creation request:', { userId, body: req.body });
-      const validatedData = insertProductSchema.parse(req.body);
+      
+      // Convert empty string scheduleTemplateId to null for database
+      const cleanedBody = {
+        ...req.body,
+        scheduleTemplateId: req.body.scheduleTemplateId === '' ? null : req.body.scheduleTemplateId,
+        ftTemplateId: req.body.ftTemplateId === '' ? null : req.body.ftTemplateId
+      };
+      
+      const validatedData = insertProductSchema.parse(cleanedBody);
       console.log('Validated data:', validatedData);
       const product = await storage.createProduct(validatedData, userId);
       console.log('Product created successfully:', product);
