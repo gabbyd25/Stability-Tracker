@@ -419,26 +419,26 @@ function generateFreezeThawTasks(
       break;
 
     case "weekly":
-      // One F/T cycle per week (Week 1, 2, 3)
+      // One F/T cycle per week (Week 1, 2, 3) - Test day is 1 day after thaw day
       const weeklyCycles = [
-        { cycle: 1, thawWeek: 1, testWeek: 1 }, // Week 1: Thaw Day 1, Test Day 3
-        { cycle: 2, thawWeek: 2, testWeek: 2 }, // Week 2: Thaw Day 1, Test Day 3  
-        { cycle: 3, thawWeek: 3, testWeek: 3 }  // Week 3: Thaw Day 1, Test Day 3
+        { cycle: 1, thawWeek: 1, testWeek: 1 }, // Week 1: Thaw Day 1, Test Day 2
+        { cycle: 2, thawWeek: 2, testWeek: 2 }, // Week 2: Thaw Day 1, Test Day 2  
+        { cycle: 3, thawWeek: 3, testWeek: 3 }  // Week 3: Thaw Day 1, Test Day 2
       ];
 
       weeklyCycles.forEach(ft => {
         const thawDay = (ft.thawWeek - 1) * 7 + 1; // First day of each week
-        const testDay = (ft.testWeek - 1) * 7 + 3;  // Third day of each week
+        const testDay = (ft.testWeek - 1) * 7 + 2;  // Second day of each week (thaw + 1)
         addFTTasks(tasks, productId, productName, startDate, ft.cycle, thawDay, testDay);
       });
       break;
 
     case "biweekly":
-      // One F/T cycle every two weeks
+      // One F/T cycle every two weeks - Test day is 1 day after thaw day
       const biweeklyCycles = [
-        { cycle: 1, thawDay: 1, testDay: 3 },   // Week 1
-        { cycle: 2, thawDay: 15, testDay: 17 }, // Week 3  
-        { cycle: 3, thawDay: 29, testDay: 31 }  // Week 5
+        { cycle: 1, thawDay: 1, testDay: 2 },   // Week 1: Day 1 → Day 2
+        { cycle: 2, thawDay: 15, testDay: 16 }, // Week 3: Day 15 → Day 16  
+        { cycle: 3, thawDay: 29, testDay: 30 }  // Week 5: Day 29 → Day 30
       ];
 
       biweeklyCycles.forEach(ft => {
