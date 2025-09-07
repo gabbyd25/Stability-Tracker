@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -76,7 +76,7 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
   });
 
   // Initialize edit mode data
-  useState(() => {
+  useEffect(() => {
     if (editTemplate) {
       try {
         const intervals = JSON.parse(editTemplate.testingIntervals);
@@ -140,7 +140,7 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
         console.error('Error parsing edit template intervals:', error);
       }
     }
-  });
+  }, [editTemplate]);
 
   const saveTemplateMutation = useMutation({
     mutationFn: async (data: TemplateFormData) => {
