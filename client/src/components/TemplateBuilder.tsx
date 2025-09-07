@@ -269,10 +269,15 @@ export default function TemplateBuilder({ onTemplateCreated, editTemplate, mode 
     const allIntervals = getAllIntervals();
     console.log('Template intervals being saved:', allIntervals);
     console.log('Template intervals stringified:', JSON.stringify(allIntervals));
-    saveTemplateMutation.mutate({
-      ...data,
-      testingIntervals: JSON.stringify(allIntervals),
-    });
+    
+    // Don't use the form's testingIntervals, use our fresh enhanced data
+    const payload = {
+      name: data.name,
+      description: data.description,
+      testingIntervals: allIntervals, // Use the enhanced objects directly
+    };
+    
+    saveTemplateMutation.mutate(payload);
   };
 
   return (
