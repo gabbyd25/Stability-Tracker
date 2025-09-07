@@ -54,7 +54,7 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
     defaultValues: {
       name: "",
       assignee: "",
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: new Date().toLocaleDateString('en-CA'), // Uses local timezone, returns YYYY-MM-DD
       scheduleTemplateId: "",
       ftTemplateId: "",
       ftCycleType: "consecutive",
