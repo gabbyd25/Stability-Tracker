@@ -1,25 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { type User } from "@shared/schema";
+import { api } from "@/lib/api";
+import type { User } from "@/types";
 
 export function useAuth() {
-  const { data: user, isLoading } = useQuery<User | null>({
-    queryKey: ["/api/auth/user"],
+  const { data: user, isLoading } = useQuery({
+    queryKey: ["auth", "current-user"],
     retry: false,
     queryFn: async () => {
       try {
-        const res = await fetch("/api/auth/user", {
-          credentials: "include",
-        });
-        
-        if (res.status === 401) {
-          return null; // Not authenticated
-        }
-        
-        if (!res.ok) {
-          throw new Error(`${res.status}: ${res.statusText}`);
-        }
-        
-        return await res.json();
+        return await api.getCurrentUser();
       } catch (error) {
         console.error("Auth query error:", error);
         return null;

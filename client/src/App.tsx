@@ -9,18 +9,12 @@ import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-
+  // For now, bypass auth and go straight to home page
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/home" component={Home} />
-        </>
-      )}
+      <Route path="/" component={Home} />
+      <Route path="/home" component={Home} />
+      <Route path="/landing" component={Landing} />
       <Route component={NotFound} />
     </Switch>
   );

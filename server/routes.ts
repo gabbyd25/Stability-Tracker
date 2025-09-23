@@ -3,14 +3,14 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProductSchema, insertTaskSchema, insertScheduleTemplateSchema, insertFTCycleTemplateSchema } from "@shared/schema";
 import { z } from "zod";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { initAuth, requireUser } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  initAuth(app);
   
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -22,7 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule Templates routes
-  app.get("/api/schedule-templates", isAuthenticated, async (req: any, res) => {
+  app.get("/api/schedule-templates", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const templates = await storage.getScheduleTemplates(userId);
@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/schedule-templates", isAuthenticated, async (req: any, res) => {
+  app.post("/api/schedule-templates", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertScheduleTemplateSchema.parse(req.body);
@@ -56,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/schedule-templates/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/schedule-templates/:id", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;
@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/schedule-templates/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/schedule-templates/:id", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;
@@ -91,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // F/T Cycle Templates routes
-  app.get("/api/ft-cycle-templates", isAuthenticated, async (req: any, res) => {
+  app.get("/api/ft-cycle-templates", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const templates = await storage.getFTCycleTemplates(userId);
@@ -101,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/ft-cycle-templates", isAuthenticated, async (req: any, res) => {
+  app.post("/api/ft-cycle-templates", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertFTCycleTemplateSchema.parse(req.body);
@@ -116,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/ft-cycle-templates/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/ft-cycle-templates/:id", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;
@@ -131,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/ft-cycle-templates/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/ft-cycle-templates/:id", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;
@@ -146,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all products (protected)
-  app.get("/api/products", isAuthenticated, async (req: any, res) => {
+  app.get("/api/products", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const products = await storage.getProducts(userId);
@@ -157,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new product (protected)
-  app.post("/api/products", isAuthenticated, async (req: any, res) => {
+  app.post("/api/products", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       console.log('Product creation request:', { userId, body: req.body });
@@ -187,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all tasks with products (protected)
-  app.get("/api/tasks", isAuthenticated, async (req: any, res) => {
+  app.get("/api/tasks", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const tasks = await storage.getTasksWithProducts(userId);
@@ -198,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new task
-  app.post("/api/tasks", isAuthenticated, async (req: any, res) => {
+  app.post("/api/tasks", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertTaskSchema.parse(req.body);
@@ -214,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create multiple tasks (protected)
-  app.post("/api/tasks/batch", isAuthenticated, async (req: any, res) => {
+  app.post("/api/tasks/batch", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { tasks } = req.body;
@@ -235,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update task (complete/uncomplete) - protected
-  app.patch("/api/tasks/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/tasks/:id", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;
@@ -260,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get deleted tasks (recycle bin) - protected
-  app.get("/api/tasks/deleted", isAuthenticated, async (req: any, res) => {
+  app.get("/api/tasks/deleted", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const deletedTasks = await storage.getDeletedTasksWithProducts(userId);
@@ -271,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete task (soft delete - move to recycle bin) - protected
-  app.delete("/api/tasks/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/tasks/:id", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;
@@ -286,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Restore task from recycle bin - protected
-  app.post("/api/tasks/:id/restore", isAuthenticated, async (req: any, res) => {
+  app.post("/api/tasks/:id/restore", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;
@@ -301,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Permanently delete task - protected
-  app.delete("/api/tasks/:id/permanent", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/tasks/:id/permanent", requireUser(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;

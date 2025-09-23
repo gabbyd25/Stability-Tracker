@@ -1,19 +1,11 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import Database from 'better-sqlite3';
 import * as schema from "@shared/schema";
 import { ftCycleTemplates } from "@shared/schema";
+import { v4 as uuidv4 } from 'uuid';
 
-neonConfig.webSocketConstructor = ws;
-
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
-
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+const sqlite = new Database('stability.db');
+export const db = drizzle(sqlite, { schema });
 
 // PostgreSQL storage implementation
 import { IStorage } from "./storage";
@@ -28,18 +20,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(schema.users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: schema.users.id,
-        set: {
+    // Check if user exists
+    const existing = await this.getUser(userData.id);
+    if (existing) {
+      // Update existing user
+      await db.update(schema.users)
+        .set({
           ...userData,
           updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
+        })
+        .where(eq(schema.users.id, userData.id));
+      return (await this.getUser(userData.id))!;
+    } else {
+      // Insert new user
+      await db.insert(schema.users).values(userData);
+      return (await this.getUser(userData.id))!;
+    }
   }
 
   // Schedule Templates
@@ -60,20 +56,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createScheduleTemplate(insertTemplate: InsertScheduleTemplate, userId: string): Promise<ScheduleTemplate> {
-    const [template] = await db.insert(schema.scheduleTemplates).values({
+    const id = uuidv4();
+    await db.insert(schema.scheduleTemplates).values({
       ...insertTemplate,
+      id,
       userId
-    }).returning();
-    return template;
+    });
+    return (await this.getScheduleTemplate(id, userId))!;
   }
 
   async updateScheduleTemplate(id: string, userId: string, updates: Partial<ScheduleTemplate>): Promise<ScheduleTemplate | undefined> {
-    const [updatedTemplate] = await db
+    await db
       .update(schema.scheduleTemplates)
       .set({ ...updates, updatedAt: new Date() })
-      .where(and(eq(schema.scheduleTemplates.id, id), eq(schema.scheduleTemplates.userId, userId)))
-      .returning();
-    return updatedTemplate || undefined;
+      .where(and(eq(schema.scheduleTemplates.id, id), eq(schema.scheduleTemplates.userId, userId)));
+    return await this.getScheduleTemplate(id, userId);
   }
 
   async deleteScheduleTemplate(id: string, userId: string): Promise<boolean> {
@@ -82,15 +79,16 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)` })
       .from(schema.products)
       .where(eq(schema.products.scheduleTemplateId, id));
-    
+
     if (productsUsingTemplate[0]?.count > 0) {
       throw new Error(`Cannot delete template. It is currently being used by ${productsUsingTemplate[0].count} product(s). Please remove the template from all products before deleting.`);
     }
 
     const result = await db
       .delete(schema.scheduleTemplates)
-      .where(and(eq(schema.scheduleTemplates.id, id), eq(schema.scheduleTemplates.userId, userId)));
-    return (result.rowCount ?? 0) > 0;
+      .where(and(eq(schema.scheduleTemplates.id, id), eq(schema.scheduleTemplates.userId, userId)))
+      .run();
+    return result.changes > 0;
   }
 
   async getPresetScheduleTemplates(): Promise<ScheduleTemplate[]> {
@@ -110,27 +108,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFTCycleTemplate(insertTemplate: InsertFTCycleTemplate, userId: string): Promise<FTCycleTemplate> {
-    const [template] = await db.insert(schema.ftCycleTemplates).values({
+    const id = uuidv4();
+    await db.insert(schema.ftCycleTemplates).values({
       ...insertTemplate,
+      id,
       userId
-    }).returning();
-    return template;
+    });
+    return (await this.getFTCycleTemplate(id, userId))!;
   }
 
   async updateFTCycleTemplate(id: string, userId: string, updates: Partial<FTCycleTemplate>): Promise<FTCycleTemplate | undefined> {
-    const [updatedTemplate] = await db
+    await db
       .update(schema.ftCycleTemplates)
       .set({ ...updates, updatedAt: new Date() })
-      .where(and(eq(schema.ftCycleTemplates.id, id), eq(schema.ftCycleTemplates.userId, userId)))
-      .returning();
-    return updatedTemplate || undefined;
+      .where(and(eq(schema.ftCycleTemplates.id, id), eq(schema.ftCycleTemplates.userId, userId)));
+    return await this.getFTCycleTemplate(id, userId);
   }
 
   async deleteFTCycleTemplate(id: string, userId: string): Promise<boolean> {
     const result = await db
       .delete(schema.ftCycleTemplates)
-      .where(and(eq(schema.ftCycleTemplates.id, id), eq(schema.ftCycleTemplates.userId, userId)));
-    return (result.rowCount ?? 0) > 0;
+      .where(and(eq(schema.ftCycleTemplates.id, id), eq(schema.ftCycleTemplates.userId, userId)))
+      .run();
+    return result.changes > 0;
   }
 
   // Products
@@ -159,11 +159,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(insertProduct: InsertProduct, userId: string): Promise<Product> {
-    const [product] = await db.insert(schema.products).values({
+    const id = uuidv4();
+    await db.insert(schema.products).values({
       ...insertProduct,
+      id,
       userId
-    }).returning();
-    return product;
+    });
+    return (await this.getProduct(id, userId))!;
   }
 
   async getTasks(userId: string): Promise<Task[]> {
@@ -212,60 +214,64 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTask(insertTask: InsertTask, userId: string): Promise<Task> {
-    const [task] = await db.insert(schema.tasks).values({
+    const id = uuidv4();
+    await db.insert(schema.tasks).values({
       ...insertTask,
+      id,
       userId
-    }).returning();
-    return task;
+    });
+    return (await this.getTask(id, userId))!;
   }
 
   async createTasks(insertTasks: InsertTask[], userId: string): Promise<Task[]> {
-    const tasksWithUserId = insertTasks.map(task => ({ ...task, userId }));
-    const tasks = await db.insert(schema.tasks).values(tasksWithUserId).returning();
-    return tasks;
+    const tasksWithIds = insertTasks.map(task => ({ ...task, id: uuidv4(), userId }));
+    for (const task of tasksWithIds) {
+      await db.insert(schema.tasks).values(task);
+    }
+    return Promise.all(tasksWithIds.map(t => this.getTask(t.id, userId).then(task => task!)));
   }
 
   async updateTask(id: string, userId: string, updates: Partial<Task>): Promise<Task | undefined> {
-    const [updatedTask] = await db
+    await db
       .update(schema.tasks)
       .set(updates)
-      .where(and(eq(schema.tasks.id, id), eq(schema.tasks.userId, userId)))
-      .returning();
-    return updatedTask || undefined;
+      .where(and(eq(schema.tasks.id, id), eq(schema.tasks.userId, userId)));
+    return await this.getTask(id, userId);
   }
 
   async deleteTask(id: string, userId: string): Promise<boolean> {
     const result = await db
       .update(schema.tasks)
-      .set({ 
-        deleted: true, 
+      .set({
+        deleted: true,
         deletedAt: new Date()
       })
-      .where(and(eq(schema.tasks.id, id), eq(schema.tasks.userId, userId)));
-    return (result.rowCount ?? 0) > 0;
+      .where(and(eq(schema.tasks.id, id), eq(schema.tasks.userId, userId)))
+      .run();
+    return result.changes > 0;
   }
 
   async restoreTask(id: string, userId: string): Promise<Task | undefined> {
-    const [restoredTask] = await db
+    await db
       .update(schema.tasks)
-      .set({ 
-        deleted: false, 
-        deletedAt: null 
+      .set({
+        deleted: false,
+        deletedAt: null
       })
       .where(and(
-        eq(schema.tasks.id, id), 
+        eq(schema.tasks.id, id),
         eq(schema.tasks.userId, userId),
         eq(schema.tasks.deleted, true)
-      ))
-      .returning();
-    return restoredTask || undefined;
+      ));
+    return await this.getTask(id, userId);
   }
 
   async permanentlyDeleteTask(id: string, userId: string): Promise<boolean> {
     const result = await db
       .delete(schema.tasks)
-      .where(and(eq(schema.tasks.id, id), eq(schema.tasks.userId, userId)));
-    return (result.rowCount ?? 0) > 0;
+      .where(and(eq(schema.tasks.id, id), eq(schema.tasks.userId, userId)))
+      .run();
+    return result.changes > 0;
   }
 
   async getTasksByProductId(productId: string, userId: string): Promise<Task[]> {
@@ -273,7 +279,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(schema.tasks)
       .where(and(
-        eq(schema.tasks.productId, productId), 
+        eq(schema.tasks.productId, productId),
         eq(schema.tasks.userId, userId),
         eq(schema.tasks.deleted, false)
       ));
