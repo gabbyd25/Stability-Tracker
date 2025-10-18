@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# Disable trailing slash requirement for API compatibility with frontend
+APPEND_SLASH = False
 
 # Application definition
 

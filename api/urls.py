@@ -8,7 +8,8 @@ from .views import (
     TaskViewSet
 )
 
-router = DefaultRouter()
+# Configure router without trailing slashes to match frontend expectations
+router = DefaultRouter(trailing_slash=False)
 router.register(r'users', UserViewSet)
 router.register(r'schedule-templates', ScheduleTemplateViewSet, basename='scheduletemplate')
 router.register(r'ft-cycle-templates', FTCycleTemplateViewSet, basename='ftcycletemplate')

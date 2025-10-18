@@ -20,8 +20,7 @@ class FTCycleTemplate(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    freeze_hours = models.IntegerField()
-    thaw_hours = models.IntegerField()
+    cycles = models.JSONField()  # Array of {cycle, thawDay, testDay} objects
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -29,12 +28,6 @@ class FTCycleTemplate(models.Model):
         return self.name
 
 class Product(models.Model):
-    TEST_TYPE_CHOICES = [
-        ('RT', 'Real-Time'),
-        ('ACC', 'Accelerated'),
-        ('LT', 'Long-Term'),
-    ]
-
     FT_CYCLE_CHOICES = [
         ('consecutive', 'Consecutive'),
         ('weekly', 'Weekly'),
@@ -44,26 +37,25 @@ class Product(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    product_number = models.CharField(max_length=255)
-    product_name = models.CharField(max_length=255)
-    lot_number = models.CharField(max_length=255)
-    sample_size = models.IntegerField()
-    start_date = models.DateTimeField()
-    test_type = models.CharField(max_length=3, choices=TEST_TYPE_CHOICES)
+    name = models.CharField(max_length=255)
+    assignee = models.CharField(max_length=255)
+    start_date = models.CharField(max_length=50)  # Store as YYYY-MM-DD string to match frontend
     schedule_template = models.ForeignKey(ScheduleTemplate, on_delete=models.SET_NULL, null=True, blank=True)
     ft_cycle_type = models.CharField(max_length=20, choices=FT_CYCLE_CHOICES, default='consecutive')
     ft_cycle_custom = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.product_name} - {self.lot_number}"
+        return f"{self.name}"
 
 class Task(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    due_date = models.DateTimeField()
-    description = models.TextField()
+    name = models.CharField(max_length=255)
+    type = models.CharField(max_length=50)  # 'weekly', 'ft-thaw', 'ft-test'
+    due_date = models.CharField(max_length=50)  # Store as YYYY-MM-DD string
+    cycle = models.CharField(max_length=100, null=True, blank=True)  # 'Initial', 'Week 1', 'Cycle 1', etc.
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
     deleted = models.BooleanField(default=False)
@@ -71,4 +63,4 @@ class Task(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.product.product_name} - {self.description}"
+        return f"{self.product.name} - {self.name}"
