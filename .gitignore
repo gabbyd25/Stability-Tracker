@@ -38,4 +38,6 @@ Postgres-*.dmg
 
 # Local development
 .local/
-migrations/
+
+# Only ignore migration cache files, not the migrations themselves
+**/migrations/__pycache__/
