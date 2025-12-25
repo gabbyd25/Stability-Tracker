@@ -1,0 +1,44 @@
+# Node modules
+node_modules/
+npm-debug.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.claude/
+
+# Git
+.git/
+.gitignore
+
+# Build outputs
+dist/
+build/
+
+# Database (optional - comment out if you want to include db)
+# db.sqlite3
+# *.db
+
+# Misc
+*.log
+.DS_Store
+*.md

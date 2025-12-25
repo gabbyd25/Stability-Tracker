@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-^)q1d-wk9b(q=_1kzms75-@v+7hzet+=c&)_5#3-j93gffqo2^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'stabilitytracker.gangelee.com']
 
 # Disable trailing slash requirement for API compatibility with frontend
 APPEND_SLASH = False

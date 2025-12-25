@@ -1,0 +1,35 @@
+# Use Python 3.10 as base image
+FROM python:3.10-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=7834
+
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy project files
+COPY manage.py /app/
+COPY api/ /app/api/
+COPY stability_backend/ /app/stability_backend/
+COPY db.sqlite3 /app/
+
+# Collect static files (if needed)
+RUN python manage.py collectstatic --noinput || true
+
+# Expose port 7834
+EXPOSE 7834
+
+# Run migrations and start gunicorn
+CMD python manage.py migrate --noinput && \
+    gunicorn --bind 0.0.0.0:7834 --workers 4 stability_backend.wsgi:application
